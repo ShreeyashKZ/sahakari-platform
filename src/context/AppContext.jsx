@@ -217,6 +217,46 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // 2b. Cancel a booking with customer reason
+  const cancelBooking = async (bookingId, reason, note = "") => {
+    const fullReason = note && note.trim() ? `${reason} (${note.trim()})` : reason;
+    const cancelledTimestamp = new Date().toISOString();
+
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              status: "Cancelled",
+              cancellationReason: fullReason,
+              cancelledBy: "Customer",
+              cancelledAt: cancelledTimestamp,
+              paymentStatus:
+                b.paymentStatus === "Paid" || b.paymentStatus === "Escrow Secured"
+                  ? "Refund Initiated"
+                  : "Cancelled",
+            }
+          : b
+      )
+    );
+
+    if (apiConnected) {
+      try {
+        await fetch(`${API_URL}/api/bookings/${bookingId}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "Cancelled",
+            cancellationReason: fullReason,
+            cancelledBy: "Customer",
+          }),
+        });
+      } catch (e) {
+        console.warn("Cancellation backend sync error:", e);
+      }
+    }
+  };
+
   // 3. Complete payment for booking
   const completePayment = async (bookingId) => {
     let updatedBooking = null;
@@ -1086,6 +1126,7 @@ export const AppProvider = ({ children }) => {
         loginAsMaster,
         createBooking,
         updateBookingStatus,
+        cancelBooking,
         completePayment,
         submitReview,
         createCommunityRequest,

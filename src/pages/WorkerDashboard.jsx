@@ -93,9 +93,10 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   const workerBookings = bookings.filter((b) => b.workerId === currentWorker.id);
   const pendingRequests = workerBookings.filter((b) => b.status === "Requested");
   const activeJobs = workerBookings.filter(
-    (b) => b.status !== "Requested" && b.status !== "Completed"
+    (b) => b.status !== "Requested" && b.status !== "Completed" && b.status !== "Cancelled"
   );
   const completedJobs = workerBookings.filter((b) => b.status === "Completed");
+  const cancelledJobs = workerBookings.filter((b) => b.status === "Cancelled");
 
   const handleSendWorkerReply = (e) => {
     e.preventDefault();
@@ -527,6 +528,34 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
               </div>
             )}
           </div>
+
+          {/* Cancelled Work Orders Section with Reasons */}
+          {cancelledJobs.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                  <span className="text-rose-700">Cancelled Work Orders</span>
+                  <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
+                    {cancelledJobs.length}
+                  </span>
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">Customer reasons communicated transparently</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {cancelledJobs.map((b) => (
+                  <JobRequestCard
+                    key={b.id}
+                    booking={b}
+                    onAccept={() => {}}
+                    onReject={() => {}}
+                    onStartService={() => {}}
+                    onCompleteService={() => {}}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
