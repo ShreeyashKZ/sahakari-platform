@@ -23,7 +23,8 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
     resetDemoData, 
     currentUser, 
     logoutUser, 
-    setIsAuthOpen 
+    setIsAuthOpen,
+    setIsMasterConsoleOpen,
   } = useApp();
 
   const handleRoleChange = (newRole) => {
@@ -320,7 +321,9 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
                       {currentUser.name}
                     </p>
                     <span className="text-[9px] font-bold text-emerald-700 block mt-0.5">
-                      {currentUser.role === "worker"
+                      {currentUser.isMasterAccount || currentUser.role === "master"
+                        ? "⚡ Master Admin"
+                        : currentUser.role === "worker"
                         ? (currentUser.isEshramVerified ? "e-Shram ✓" : "Worker")
                         : currentUser.role === "skill_swap"
                         ? "Skill Swap"
@@ -328,6 +331,17 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
                     </span>
                   </div>
                 </button>
+
+                {(currentUser.isMasterAccount || currentUser.role === "master") && (
+                  <button
+                    onClick={() => setIsMasterConsoleOpen(true)}
+                    title="Open Master Live Console"
+                    className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-[11px] font-extrabold px-2.5 py-1.5 rounded-xl shadow-xs hover:scale-105 transition cursor-pointer"
+                  >
+                    <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
+                    <span>Console</span>
+                  </button>
+                )}
 
                 <button
                   onClick={logoutUser}

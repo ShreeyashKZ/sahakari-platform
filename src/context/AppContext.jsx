@@ -46,12 +46,52 @@ export const AppProvider = ({ children }) => {
 
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem("sahakari_users");
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed)) {
+          // Ensure master user and any missing initial users are merged in
+          const merged = [...parsed];
+          INITIAL_USERS.forEach((initU) => {
+            if (!merged.some((u) => u.email === initU.email || u.phone === initU.phone)) {
+              merged.push(initU);
+            }
+          });
+          return merged;
+        }
+      } catch (e) {}
+    }
+    return INITIAL_USERS;
   });
 
   const [workers, setWorkers] = useState(() => {
     const saved = localStorage.getItem("sahakari_workers");
-    return saved ? JSON.parse(saved) : INITIAL_WORKERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed) && parsed.length >= INITIAL_WORKERS.length) {
+          return parsed;
+        }
+        // If saved list had fewer workers, merge in new workers
+        if (parsed && Array.isArray(parsed)) {
+          const merged = [...parsed];
+          INITIAL_WORKERS.forEach((initW) => {
+            if (!merged.some((w) => w.id === initW.id)) {
+              merged.push(initW);
+            }
+          });
+          return merged;
+        }
+      } catch (e) {}
+    }
+    return INITIAL_WORKERS;
+  });
+
+  // Master Account Controls: Live Console & Masquerade Switcher
+  const isMasterMode = Boolean(currentUser?.isMasterAccount || currentUser?.role === "master");
+  const [isMasterConsoleOpen, setIsMasterConsoleOpen] = useState(false);
+  const [masterActiveWorkerId, setMasterActiveWorkerId] = useState(() => {
+    return localStorage.getItem("sahakari_master_worker_id") || "w-imran";
   });
 
   const [bookings, setBookings] = useState(() => {
@@ -786,6 +826,118 @@ export const AppProvider = ({ children }) => {
     );
   };
 
+  // Master Control: Switch Worker Persona across all categories
+  const switchWorkerPersona = (workerId) => {
+    setMasterActiveWorkerId(workerId);
+    setCurrentWorkerId(workerId);
+    localStorage.setItem("sahakari_master_worker_id", workerId);
+    localStorage.setItem("sahakari_worker_id", workerId);
+
+    // If a customer chat session is currently active, re-link to this worker
+    if (activeChatSession) {
+      const targetWorker = workers.find((w) => w.id === workerId);
+      if (targetWorker) {
+        setActiveChatSession((prev) => ({
+          ...prev,
+          workerId: targetWorker.id,
+          workerName: targetWorker.name,
+          workerAvatar: targetWorker.avatar,
+          workerPhone: targetWorker.phone,
+          serviceName: targetWorker.serviceName,
+          baseRate: targetWorker.hourlyRate || prev.baseRate,
+        }));
+      }
+    }
+  };
+
+  // Master Control: Send live message as the worker
+  const masterSendWorkerMessage = (text) => {
+    if (!activeChatSession) return;
+    const cleanText = text.trim();
+    if (!cleanText) return;
+
+    const workerMsg = {
+      id: `m-mstr-${Date.now()}`,
+      sender: "worker",
+      text: cleanText,
+      timestamp: "Just now",
+      isLiveFromMaster: true,
+    };
+
+    setActiveChatSession((prev) => ({
+      ...prev,
+      messages: [...prev.messages, workerMsg],
+    }));
+  };
+
+  // Master Control: Respond live to customer bargain offers
+  const masterRespondBargain = (decision, customPrice) => {
+    if (!activeChatSession) return;
+    if (decision === "accept") {
+      const finalRate = customPrice || activeChatSession.proposedPrice || activeChatSession.baseRate;
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "accepted",
+        agreedPrice: finalRate,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-resp-mstr-${Date.now()}`,
+            sender: "worker",
+            text: `🤝 Offer Accepted! I agree to ₹${finalRate}. You can now proceed to payment & confirm the booking.`,
+            timestamp: "Just now",
+            isLiveFromMaster: true,
+          },
+        ],
+      }));
+    } else if (decision === "counter") {
+      const counterRate = customPrice || Math.round(((activeChatSession.baseRate || 350) + (activeChatSession.proposedPrice || 300)) / 2);
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "countered",
+        counterPrice: counterRate,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-resp-mstr-${Date.now()}`,
+            sender: "worker",
+            text: `Fair cooperative counter: How about ₹${counterRate}? If agreed, please confirm to get started.`,
+            timestamp: "Just now",
+            isLiveFromMaster: true,
+          },
+        ],
+      }));
+    } else if (decision === "decline") {
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "declined",
+        agreedPrice: prev.baseRate,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-resp-mstr-${Date.now()}`,
+            sender: "worker",
+            text: `My rate is fixed at ₹${prev.baseRate}. This covers guaranteed 100% genuine workmanship and cooperative warranty.`,
+            timestamp: "Just now",
+            isLiveFromMaster: true,
+          },
+        ],
+      }));
+    }
+  };
+
+  // Master Control: Instant 1-click presenter master login
+  const loginAsMaster = () => {
+    const masterUser = users.find((u) => u.email === "master@sahakari.in") || INITIAL_USERS[0];
+    setCurrentUser(masterUser);
+    localStorage.setItem("sahakari_current_user", JSON.stringify(masterUser));
+    sessionStorage.removeItem("sahakari_current_user");
+    setRole("master");
+    setIsAuthOpen(false);
+    setIsMasterConsoleOpen(true);
+    return masterUser;
+  };
+
   // Sync quickJobs
   useEffect(() => {
     localStorage.setItem("sahakari_quick_jobs", JSON.stringify(quickJobs));
@@ -924,6 +1076,14 @@ export const AppProvider = ({ children }) => {
         respondToBargainOffer,
         updateWorkerSettings,
         updateBookingEta,
+        isMasterMode,
+        isMasterConsoleOpen,
+        setIsMasterConsoleOpen,
+        masterActiveWorkerId,
+        switchWorkerPersona,
+        masterSendWorkerMessage,
+        masterRespondBargain,
+        loginAsMaster,
         createBooking,
         updateBookingStatus,
         completePayment,

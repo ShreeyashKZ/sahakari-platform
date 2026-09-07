@@ -29,6 +29,7 @@ import { MockPaymentModal } from "../components/customer/MockPaymentModal";
 import { ReviewModal } from "../components/customer/ReviewModal";
 import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
 import { QuickJobsSection } from "../components/customer/QuickJobsSection";
+import { PaymentInterfaceModal } from "../components/customer/PaymentInterfaceModal";
 
 export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   const {
@@ -53,6 +54,9 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   // Step 3 & 4: Selected Worker for Chat / Bargaining
   const [chattingWorker, setChattingWorker] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Workflow Step 5: Post-Bargain Payment Interface State
+  const [pendingPaymentBooking, setPendingPaymentBooking] = useState(null);
 
   // Verification modal for worker bio inspection
   const [inspectWorker, setInspectWorker] = useState(null);
@@ -121,10 +125,9 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   };
 
   const handleBookingConfirmed = (newBookingData) => {
-    createBooking(newBookingData);
     setIsChatOpen(false);
     setChattingWorker(null);
-    setActiveSubTab("bookings");
+    setPendingPaymentBooking(newBookingData);
   };
 
   return (
@@ -666,6 +669,18 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         worker={chattingWorker}
         onConfirmBooking={handleBookingConfirmed}
         isEmergency={isEmergency}
+      />
+
+      {/* Step 5: Post-Bargain Transparent Payment Interface */}
+      <PaymentInterfaceModal
+        isOpen={Boolean(pendingPaymentBooking)}
+        onClose={() => setPendingPaymentBooking(null)}
+        bookingDetails={pendingPaymentBooking}
+        onPaymentSuccess={(finalBookingData) => {
+          createBooking(finalBookingData);
+          setPendingPaymentBooking(null);
+          setActiveSubTab("bookings");
+        }}
       />
 
       {/* Worker Bio / Verification inspection modal */}

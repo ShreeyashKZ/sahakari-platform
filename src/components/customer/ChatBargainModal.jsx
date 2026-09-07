@@ -350,13 +350,13 @@ export const ChatBargainModal = ({
             </button>
           </form>
 
-          {/* Confirm Booking Main CTA */}
+          {/* Confirm Booking & Proceed to Payment CTA */}
           <button
             type="button"
             onClick={handleConfirm}
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Confirm Booking for ₹{agreedPrice}</span>
+            <span>Proceed to Payment (₹{agreedPrice})</span>
             <span className="opacity-80 font-normal text-[11px]">• Arrives in ~{etaMins} mins</span>
             <ArrowRight className="w-4 h-4" />
           </button>

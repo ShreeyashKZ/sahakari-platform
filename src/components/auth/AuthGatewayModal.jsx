@@ -24,7 +24,8 @@ import {
   FileText,
   Clock,
   ThumbsUp,
-  Award
+  Award,
+  Key
 } from "lucide-react";
 
 export const AuthGatewayModal = ({ isOpen, onClose, defaultRole = "customer" }) => {
@@ -34,6 +35,7 @@ export const AuthGatewayModal = ({ isOpen, onClose, defaultRole = "customer" }) 
     services,
     setIsAuthOpen,
     currentUser,
+    loginAsMaster,
   } = useApp();
 
   // Active role selected in Auth portal: 'customer' | 'worker' | 'skill_swap'
@@ -427,7 +429,39 @@ export const AuthGatewayModal = ({ isOpen, onClose, defaultRole = "customer" }) 
           {/* 1. LOGIN MODE (Common for User, Worker, Skill Swap)      */}
           {/* ======================================================== */}
           {authMode === "login" && (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              {/* Master Account Demo Banner */}
+              <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 border border-emerald-500/40 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md mb-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                    <Key className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-black text-white">Master Account Live Showcase</span>
+                      <span className="text-[9px] bg-emerald-500/30 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
+                        Control All Workers
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 truncate">
+                      ID: <span className="text-emerald-300 font-mono font-bold">master@sahakari.in</span> • PW: <span className="text-emerald-300 font-mono font-bold">Master@2026</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginAsMaster();
+                    if (onClose) onClose();
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black transition whitespace-nowrap cursor-pointer shadow-xs shrink-0 flex items-center justify-center gap-1"
+                >
+                  <span>1-Click Master Sign In</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Gmail / Email ID or 10-digit Mobile Number
@@ -567,7 +601,8 @@ export const AuthGatewayModal = ({ isOpen, onClose, defaultRole = "customer" }) 
                 </div>
               </div>
             </form>
-          )}
+          </div>
+        )}
 
           {/* ======================================================== */}
           {/* 2. USER SIGN UP (Customer)                               */}
