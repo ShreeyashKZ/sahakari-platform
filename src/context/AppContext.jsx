@@ -8,6 +8,7 @@ import {
   COOPERATIVE_METRICS,
   INITIAL_USERS,
   INITIAL_SKILL_SWAPS,
+  INITIAL_QUICK_JOBS,
 } from "../data/mockData";
 
 const AppContext = createContext();
@@ -66,6 +67,11 @@ export const AppProvider = ({ children }) => {
   const [skillSwaps, setSkillSwaps] = useState(() => {
     const saved = localStorage.getItem("sahakari_skill_swaps");
     return saved ? JSON.parse(saved) : INITIAL_SKILL_SWAPS;
+  });
+
+  const [quickJobs, setQuickJobs] = useState(() => {
+    const saved = localStorage.getItem("sahakari_quick_jobs");
+    return saved ? JSON.parse(saved) : INITIAL_QUICK_JOBS;
   });
 
   const [metrics, setMetrics] = useState(() => {
@@ -780,6 +786,84 @@ export const AppProvider = ({ children }) => {
     );
   };
 
+  // Sync quickJobs
+  useEffect(() => {
+    localStorage.setItem("sahakari_quick_jobs", JSON.stringify(quickJobs));
+  }, [quickJobs]);
+
+  const verifyUserAadhaar = (aadhaarNumber) => {
+    const cleanNum = aadhaarNumber ? aadhaarNumber.replace(/[^\d]/g, "") : "1234";
+    const masked = `XXXX-XXXX-${cleanNum.slice(-4)}`;
+    if (currentUser) {
+      const updated = { ...currentUser, isAadhaarVerified: true, aadhaar: masked };
+      setCurrentUser(updated);
+      if (currentUser.rememberMe) {
+        localStorage.setItem("sahakari_current_user", JSON.stringify(updated));
+      } else {
+        sessionStorage.setItem("sahakari_current_user", JSON.stringify(updated));
+      }
+    }
+    return true;
+  };
+
+  const createQuickJob = (jobData) => {
+    const newJob = {
+      id: `qj-${Date.now()}`,
+      postedBy: currentUser ? currentUser.name : "Resident Neighbor",
+      postedByAvatar:
+        currentUser?.avatar ||
+        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      phone: currentUser?.phone || "+91 98450 12345",
+      location: currentUser?.address || "Indiranagar, Society",
+      status: "Open",
+      assignedTo: null,
+      aadhaarRequired: true,
+      videoCallVerified: false,
+      paymentReleased: false,
+      ...jobData,
+    };
+    setQuickJobs((prev) => [newJob, ...prev]);
+    return newJob;
+  };
+
+  const verifyVideoCallAgreement = (jobId, applicantData) => {
+    setQuickJobs((prev) =>
+      prev.map((j) => {
+        if (j.id === jobId) {
+          return {
+            ...j,
+            status: "In Progress",
+            videoCallVerified: true,
+            assignedTo: applicantData || {
+              name: currentUser ? currentUser.name : "Verified Neighbor",
+              phone: currentUser ? currentUser.phone : "+91 98450 12345",
+              avatar:
+                currentUser?.avatar ||
+                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+              aadhaarVerified: true,
+            },
+          };
+        }
+        return j;
+      })
+    );
+  };
+
+  const completeAndReleaseQuickJobPayment = (jobId) => {
+    setQuickJobs((prev) =>
+      prev.map((j) => {
+        if (j.id === jobId) {
+          return {
+            ...j,
+            status: "Completed",
+            paymentReleased: true,
+          };
+        }
+        return j;
+      })
+    );
+  };
+
   // 6. Reset all demo data
   const resetDemoData = () => {
     localStorage.removeItem("sahakari_workers");
@@ -788,6 +872,7 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem("sahakari_metrics");
     localStorage.removeItem("sahakari_users");
     localStorage.removeItem("sahakari_skill_swaps");
+    localStorage.removeItem("sahakari_quick_jobs");
     localStorage.removeItem("sahakari_current_user");
     sessionStorage.removeItem("sahakari_current_user");
     setWorkers(INITIAL_WORKERS);
@@ -796,6 +881,7 @@ export const AppProvider = ({ children }) => {
     setMetrics(COOPERATIVE_METRICS);
     setUsers(INITIAL_USERS);
     setSkillSwaps(INITIAL_SKILL_SWAPS);
+    setQuickJobs(INITIAL_QUICK_JOBS);
     setCurrentUser(null);
     setIsAuthOpen(true);
   };
@@ -814,6 +900,11 @@ export const AppProvider = ({ children }) => {
         logoutUser,
         updateWorkerEshram,
         createSkillSwap,
+        quickJobs,
+        createQuickJob,
+        verifyUserAadhaar,
+        verifyVideoCallAgreement,
+        completeAndReleaseQuickJobPayment,
         currentWorkerId,
         setCurrentWorkerId,
         currentWorker,

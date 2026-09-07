@@ -28,6 +28,10 @@ export function App() {
   const handleNavTab = (tab) => {
     setActiveTab(tab);
     if (tab === "bookings") setCustomerSubTab("bookings");
+    if (tab === "quick-jobs") {
+      setRole("customer");
+      setCustomerSubTab("quick-jobs");
+    }
     if (tab === "jobs") setWorkerSubTab("jobs");
     if (tab === "earnings") setWorkerSubTab("earnings");
     if (tab === "dashboard") {

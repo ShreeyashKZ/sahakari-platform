@@ -28,6 +28,7 @@ import { ChatBargainModal } from "../components/customer/ChatBargainModal";
 import { MockPaymentModal } from "../components/customer/MockPaymentModal";
 import { ReviewModal } from "../components/customer/ReviewModal";
 import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
+import { QuickJobsSection } from "../components/customer/QuickJobsSection";
 
 export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   const {
@@ -131,7 +132,7 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
       
       {/* Sleek Sub-Tab Nav (Book a Job vs My Profile / Active Booking) */}
       <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setActiveSubTab("find")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -140,7 +141,7 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            1. Book a Job
+            1. Book a Trade Job
           </button>
           
           <button
@@ -155,6 +156,21 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
             {activeBooking && activeBooking.status !== "Completed" && (
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab("quick-jobs")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
+              activeSubTab === "quick-jobs"
+                ? "bg-emerald-700 text-white shadow-xs"
+                : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+            <span>3. Quick Neighborhood Gigs</span>
+            <span className="text-[10px] bg-emerald-900/40 text-emerald-900 font-black px-1.5 py-0.5 rounded-full">
+              ₹ Earn / Casual Help
+            </span>
           </button>
         </div>
 
@@ -610,7 +626,37 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
               </div>
             </div>
           )}
+
+          {/* Quick Jobs Discovery Banner right on Bookings Page */}
+          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <Zap className="w-5 h-5 fill-amber-300 text-amber-300" />
+              </div>
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-900">
+                  Looking for Quick Casual Help or Want to Make Quick Money?
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Micro-tasks like pet walking, companionship, plant watering & box lifting with mandatory Aadhaar & Video call verification.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveSubTab("quick-jobs")}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer whitespace-nowrap shadow-xs"
+            >
+              Open Quick Gigs Hub →
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 3: QUICK MICRO-JOBS & CASUAL TASKS                                    */}
+      {/* ========================================================================= */}
+      {activeSubTab === "quick-jobs" && (
+        <QuickJobsSection />
       )}
 
       {/* Step 4: Interactive Chat & Bargain Window Modal */}

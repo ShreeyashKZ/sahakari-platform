@@ -12,7 +12,8 @@ import {
   Repeat,
   LogOut,
   LogIn,
-  UserCheck
+  UserCheck,
+  Zap
 } from "lucide-react";
 
 export const Navbar = ({ activeTab, setActiveTab }) => {
@@ -106,6 +107,17 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
                   }`}
                 >
                   My Bookings
+                </button>
+                <button
+                  onClick={() => setActiveTab("quick-jobs")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                    activeTab === "quick-jobs"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-emerald-700 hover:bg-emerald-50"
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                  <span>Quick Gigs</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("cooperative")}
