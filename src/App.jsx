@@ -6,14 +6,16 @@ import { LandingPage } from "./pages/LandingPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
 import { WorkerDashboard } from "./pages/WorkerDashboard";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import { SkillSwapDashboard } from "./pages/SkillSwapDashboard";
 import { DemoStoryWalkthrough } from "./components/demo/DemoStoryWalkthrough";
 import { BulkRequestModal } from "./components/admin/BulkRequestModal";
+import { AuthGatewayModal } from "./components/auth/AuthGatewayModal";
 
 export function App() {
-  const { role, setRole } = useApp();
+  const { role, setRole, isAuthOpen, setIsAuthOpen } = useApp();
 
   // Active top-level tab: 'dashboard' | 'bookings' | 'jobs' | 'earnings' | 'requests' | 'landing'
-  const [activeTab, setActiveTab] = useState("landing");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Sub-tabs inside Customer & Worker views
   const [customerSubTab, setCustomerSubTab] = useState("find"); // 'find' | 'bookings'
@@ -43,7 +45,10 @@ export function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === "landing" ? (
           <LandingPage
-            onSelectRole={(newRole) => setRole(newRole)}
+            onSelectRole={(newRole) => {
+              setRole(newRole);
+              setActiveTab("dashboard");
+            }}
             onStartDemo={(targetTab) => handleNavTab(targetTab)}
           />
         ) : (
@@ -62,6 +67,8 @@ export function App() {
               />
             )}
 
+            {role === "skill_swap" && <SkillSwapDashboard />}
+
             {role === "admin" && (
               <AdminDashboard
                 onOpenNewRequestModal={() => setIsBulkModalOpen(true)}
@@ -70,6 +77,13 @@ export function App() {
           </>
         )}
       </main>
+
+      {/* Initial / On-Demand Sign In & Registration Gateway Portal */}
+      <AuthGatewayModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        defaultRole={role === "admin" ? "customer" : role}
+      />
 
       {/* Society Bulk Request Creation Modal */}
       <BulkRequestModal

@@ -38,6 +38,13 @@ const workerSchema = new mongoose.Schema(
         tags: [String],
       },
     ],
+    aadhaar: String,
+    address: String,
+    email: String,
+    password: String,
+    hasEshram: { type: Boolean, default: false },
+    eshramNumber: { type: String, default: "" },
+    isEshramVerified: { type: Boolean, default: false },
     earnings: {
       today: { type: Number, default: 0 },
       thisWeek: { type: Number, default: 0 },

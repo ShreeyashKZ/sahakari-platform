@@ -78,8 +78,58 @@ export const WorkerVerificationModal = ({ isOpen, onClose, worker }) => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Endorsed by 4 resident welfare societies with zero safety complaints over 126 jobs.
+                Endorsed by resident welfare societies with zero safety complaints.
               </p>
+            </div>
+          </div>
+
+          {/* 4. Government e-Shram Card */}
+          <div
+            className={`p-3.5 rounded-2xl border flex items-start gap-3 ${
+              worker.isEshramVerified
+                ? "border-emerald-200 bg-emerald-50/60"
+                : "border-amber-300 bg-amber-50/60"
+            }`}
+          >
+            <div
+              className={`p-2 rounded-xl text-white mt-0.5 ${
+                worker.isEshramVerified ? "bg-emerald-600" : "bg-amber-600"
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-900">4. Govt e-Shram Social Security</h4>
+                {worker.isEshramVerified ? (
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    e-Shram Verified ✓
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                    No e-Shram Tag
+                  </span>
+                )}
+              </div>
+              {worker.isEshramVerified ? (
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  UAN: <strong className="font-mono">{worker.eshramNumber || "Verified"}</strong>. Enrolled for PMSBY ₹2,00,000 accidental cover & pension portal.
+                </p>
+              ) : (
+                <div className="mt-1 space-y-1">
+                  <p className="text-[11px] text-amber-800">
+                    Not yet linked with e-Shram. <strong>Strongly advised</strong> to register on <a href="https://eshram.gov.in" target="_blank" rel="noopener noreferrer" className="underline font-bold text-emerald-700">eshram.gov.in</a> to unlock insurance and the verified trust tag!
+                  </p>
+                  <a
+                    href="https://www.youtube.com/results?search_query=how+to+make+eshram+card+online"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-[10px] font-bold text-red-600 hover:underline"
+                  >
+                    ▶ Watch YouTube Tutorial: How to Make e-Shram in 5 mins
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

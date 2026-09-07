@@ -47,17 +47,28 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
               className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-emerald-400 shadow-md"
             />
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black">{currentWorker.name}</h1>
-                <button
-                  onClick={() => setShowVerificationModal(true)}
-                  className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 hover:bg-emerald-500/30 transition"
-                  title="View Verification Checklist"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Verified
-                </button>
-              </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black">{currentWorker.name}</h1>
+                  {currentWorker.isEshramVerified ? (
+                    <button
+                      onClick={() => setShowVerificationModal(true)}
+                      className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 hover:bg-emerald-500/30 transition cursor-pointer"
+                      title={`e-Shram UAN: ${currentWorker.eshramNumber || "Verified"}`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      e-Shram Verified
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowVerificationModal(true)}
+                      className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 hover:bg-amber-500/30 transition cursor-pointer"
+                      title="No e-Shram linked. Click to view guide."
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                      Add e-Shram Card
+                    </button>
+                  )}
+                </div>
 
               <p className="text-xs sm:text-sm text-emerald-200 mt-0.5">
                 {currentWorker.serviceName} • {currentWorker.experienceYears} Years Experience

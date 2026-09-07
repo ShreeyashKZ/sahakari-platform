@@ -8,11 +8,22 @@ import {
   RefreshCw,
   Award,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Repeat,
+  LogOut,
+  LogIn,
+  UserCheck
 } from "lucide-react";
 
 export const Navbar = ({ activeTab, setActiveTab }) => {
-  const { role, setRole, resetDemoData } = useApp();
+  const { 
+    role, 
+    setRole, 
+    resetDemoData, 
+    currentUser, 
+    logoutUser, 
+    setIsAuthOpen 
+  } = useApp();
 
   const handleRoleChange = (newRole) => {
     setRole(newRole);
@@ -189,6 +200,27 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
               </>
             )}
 
+            {role === "skill_swap" && (
+              <>
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    activeTab === "dashboard"
+                      ? "bg-white text-slate-900 shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Skill Swap Hub
+                </button>
+                <button
+                  onClick={() => setActiveTab("landing")}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  How Barter Works
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => setActiveTab("landing")}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
@@ -201,7 +233,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
             </button>
           </nav>
 
-          {/* Interactive Role Switcher for Hackathon Judges */}
+          {/* Right Actions: Interactive Role Switcher & User Auth Pill */}
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <span className="text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider hidden sm:inline">
@@ -210,7 +242,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
               
               <button
                 onClick={() => handleRoleChange("customer")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                   role === "customer"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
@@ -222,7 +254,7 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
 
               <button
                 onClick={() => handleRoleChange("worker")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                   role === "worker"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
@@ -230,21 +262,78 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
               >
                 <Briefcase className="w-3.5 h-3.5" />
                 <span>Worker</span>
-                <span className="hidden md:inline text-[10px] opacity-80">(Imran)</span>
+              </button>
+
+              <button
+                onClick={() => handleRoleChange("skill_swap")}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  role === "skill_swap"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Repeat className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Skill Swap</span>
+                <span className="text-[10px] text-amber-500 font-bold">Beta</span>
               </button>
 
               <button
                 onClick={() => handleRoleChange("admin")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
                   role === "admin"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 <Building2 className="w-3.5 h-3.5" />
-                <span>Society RWA</span>
+                <span>RWA</span>
               </button>
             </div>
+
+            {/* Auth Login / Logout Profile Pill */}
+            {currentUser ? (
+              <div className="flex items-center gap-1.5 pl-1">
+                <button
+                  onClick={() => setIsAuthOpen(true)}
+                  title="Click to switch account"
+                  className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 py-1 px-2 rounded-xl transition cursor-pointer"
+                >
+                  <img
+                    src={currentUser.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"}
+                    alt={currentUser.name}
+                    className="w-6 h-6 rounded-lg object-cover border border-slate-200"
+                  />
+                  <div className="hidden lg:block text-left leading-none">
+                    <p className="text-[11px] font-extrabold text-slate-800 truncate max-w-[85px]">
+                      {currentUser.name}
+                    </p>
+                    <span className="text-[9px] font-bold text-emerald-700 block mt-0.5">
+                      {currentUser.role === "worker"
+                        ? (currentUser.isEshramVerified ? "e-Shram ✓" : "Worker")
+                        : currentUser.role === "skill_swap"
+                        ? "Skill Swap"
+                        : "Customer"}
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={logoutUser}
+                  title="Sign out & return to Login page"
+                  className="p-1.5 bg-white hover:bg-red-50 hover:text-red-600 text-slate-400 rounded-xl border border-slate-200 shadow-2xs transition cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
