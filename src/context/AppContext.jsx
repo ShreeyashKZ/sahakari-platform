@@ -587,6 +587,199 @@ export const AppProvider = ({ children }) => {
     return newSwap;
   };
 
+  // Active Chat & Bargain Session (shared between customer and worker views)
+  const [activeChatSession, setActiveChatSession] = useState(null);
+
+  const startChatSession = (worker, serviceObj) => {
+    const baseRate = worker.hourlyRate || 350;
+    const initialSession = {
+      workerId: worker.id,
+      workerName: worker.name,
+      workerAvatar: worker.avatar,
+      workerPhone: worker.phone,
+      serviceId: worker.serviceId || serviceObj?.id || "plumber",
+      serviceName: worker.serviceName || serviceObj?.name || "Plumbing",
+      baseRate,
+      agreedPrice: baseRate,
+      canBargain: worker.canBargain !== false,
+      emergencyAvailable: Boolean(worker.emergencyAvailable),
+      etaMinutes: worker.etaMinutes || 15,
+      isEshramVerified: Boolean(worker.isEshramVerified),
+      attractionTags: worker.attractionTags || ["Can be bargained with"],
+      messages: [
+        {
+          id: "m-1",
+          sender: "worker",
+          text: `Namaste! I am available right now for your ${worker.serviceName || "service"} request. I can reach your location in approximately ${worker.etaMinutes || 15} minutes.`,
+          timestamp: "Just now",
+        },
+      ],
+      bargainStatus: "idle", // 'idle' | 'bargain_requested' | 'accepted' | 'declined' | 'countered'
+      proposedPrice: null,
+      counterPrice: null,
+    };
+    setActiveChatSession(initialSession);
+    return initialSession;
+  };
+
+  const sendChatMessage = (sender, text) => {
+    if (!activeChatSession) return;
+    const newMsg = {
+      id: `m-${Date.now()}`,
+      sender, // 'customer' | 'worker' | 'system'
+      text,
+      timestamp: "Just now",
+    };
+    setActiveChatSession((prev) => ({
+      ...prev,
+      messages: [...prev.messages, newMsg],
+    }));
+  };
+
+  const submitBargainOffer = (proposedPrice) => {
+    if (!activeChatSession) return;
+    const cleanPrice = Number(proposedPrice);
+
+    // Customer signal message
+    const customerMsg = {
+      id: `m-${Date.now()}`,
+      sender: "customer",
+      text: `🤝 Bargain Offer: Can we agree on ₹${cleanPrice} for this job?`,
+      timestamp: "Just now",
+      isBargainCard: true,
+      proposedPrice: cleanPrice,
+    };
+
+    setActiveChatSession((prev) => ({
+      ...prev,
+      bargainStatus: "bargain_requested",
+      proposedPrice: cleanPrice,
+      messages: [...prev.messages, customerMsg],
+    }));
+
+    // Automated worker reaction if customer is browsing
+    setTimeout(() => {
+      setActiveChatSession((prev) => {
+        if (!prev || prev.bargainStatus !== "bargain_requested") return prev;
+
+        if (prev.canBargain) {
+          // If within reasonable range (>= 75% of base)
+          if (cleanPrice >= prev.baseRate * 0.75) {
+            return {
+              ...prev,
+              bargainStatus: "accepted",
+              agreedPrice: cleanPrice,
+              messages: [
+                ...prev.messages,
+                {
+                  id: `m-resp-${Date.now()}`,
+                  sender: "worker",
+                  text: `I accept your bargain rate of ₹${cleanPrice}! Deal confirmed. Please click 'Confirm Booking' below so I can start navigating.`,
+                  timestamp: "Just now",
+                },
+              ],
+            };
+          } else {
+            // Counter offer
+            const counter = Math.round((prev.baseRate + cleanPrice) / 2 / 10) * 10;
+            return {
+              ...prev,
+              bargainStatus: "countered",
+              counterPrice: counter,
+              messages: [
+                ...prev.messages,
+                {
+                  id: `m-resp-${Date.now()}`,
+                  sender: "worker",
+                  text: `₹${cleanPrice} is a bit too low considering travel & quality tools. How about a fair cooperative rate of ₹${counter}?`,
+                  timestamp: "Just now",
+                },
+              ],
+            };
+          }
+        } else {
+          // Fixed price worker
+          return {
+            ...prev,
+            bargainStatus: "declined",
+            agreedPrice: prev.baseRate,
+            messages: [
+              ...prev.messages,
+              {
+                id: `m-resp-${Date.now()}`,
+                sender: "worker",
+                text: `My pricing is transparently flat & fixed at ₹${prev.baseRate}. This covers 100% genuine workmanship & 30-day warranty without hidden markups.`,
+                timestamp: "Just now",
+              },
+            ],
+          };
+        }
+      });
+    }, 1200);
+  };
+
+  const respondToBargainOffer = (decision, price) => {
+    if (!activeChatSession) return;
+    if (decision === "accept") {
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "accepted",
+        agreedPrice: prev.proposedPrice || price,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-w-acc-${Date.now()}`,
+            sender: "worker",
+            text: `Deal agreed at ₹${prev.proposedPrice || price}! Ready to proceed with booking.`,
+            timestamp: "Just now",
+          },
+        ],
+      }));
+    } else if (decision === "decline") {
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "declined",
+        agreedPrice: prev.baseRate,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-w-dec-${Date.now()}`,
+            sender: "worker",
+            text: `Keeping to standard cooperative base price of ₹${prev.baseRate}.`,
+            timestamp: "Just now",
+          },
+        ],
+      }));
+    } else if (decision === "counter") {
+      setActiveChatSession((prev) => ({
+        ...prev,
+        bargainStatus: "countered",
+        counterPrice: price,
+        messages: [
+          ...prev.messages,
+          {
+            id: `m-w-cnt-${Date.now()}`,
+            sender: "worker",
+            text: `Counter-offer: Let's settle at ₹${price}.`,
+            timestamp: "Just now",
+          },
+        ],
+      }));
+    }
+  };
+
+  const updateWorkerSettings = (workerId, updatedFields) => {
+    setWorkers((prev) =>
+      prev.map((w) => (w.id === workerId ? { ...w, ...updatedFields } : w))
+    );
+  };
+
+  const updateBookingEta = (bookingId, etaMinutes) => {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, etaMinutes } : b))
+    );
+  };
+
   // 6. Reset all demo data
   const resetDemoData = () => {
     localStorage.removeItem("sahakari_workers");
@@ -632,6 +825,14 @@ export const AppProvider = ({ children }) => {
         announcements: COMMUNITY_ANNOUNCEMENTS,
         metrics,
         apiConnected,
+        activeChatSession,
+        setActiveChatSession,
+        startChatSession,
+        sendChatMessage,
+        submitBargainOffer,
+        respondToBargainOffer,
+        updateWorkerSettings,
+        updateBookingEta,
         createBooking,
         updateBookingStatus,
         completePayment,

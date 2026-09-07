@@ -1,474 +1,660 @@
-import React, { useState } from "react";
-import { 
-  Search, 
-  MapPin, 
-  Star, 
-  SlidersHorizontal, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Clock, 
-  Sparkles,
-  ArrowRight,
-  Filter,
-  CheckCircle2,
+import React, { useState, useMemo } from "react";
+import {
   Wrench,
   Zap,
   Hammer,
-  Sparkle,
+  Sparkles,
   Cpu,
   Trees,
   Paintbrush,
-  Package
+  Package,
+  MapPin,
+  Star,
+  Clock,
+  ShieldCheck,
+  AlertTriangle,
+  Sliders,
+  CheckCircle2,
+  PhoneCall,
+  MessageSquare,
+  ArrowRight,
+  RotateCcw,
+  Search,
+  Check,
+  UserCheck
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { WorkerCard } from "../components/customer/WorkerCard";
-import { BookingModal } from "../components/customer/BookingModal";
-import { BookingTracker } from "../components/customer/BookingTracker";
+import { ChatBargainModal } from "../components/customer/ChatBargainModal";
 import { MockPaymentModal } from "../components/customer/MockPaymentModal";
 import { ReviewModal } from "../components/customer/ReviewModal";
 import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
 
 export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
-  const { 
-    services, 
-    workers, 
-    bookings, 
-    createBooking, 
-    updateBookingStatus, 
-    completePayment, 
-    submitReview 
+  const {
+    services,
+    workers,
+    bookings,
+    createBooking,
+    startChatSession,
+    completePayment,
+    submitReview,
+    currentUser,
   } = useApp();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedService, setSelectedService] = useState("plumber");
-  const [distanceFilter, setDistanceFilter] = useState("all");
-  const [minRatingFilter, setMinRatingFilter] = useState(0);
-  const [emergencyActive, setEmergencyActive] = useState(false);
+  // Workflow State:
+  // Step 1: Selected Job / Service
+  const [selectedServiceId, setSelectedServiceId] = useState("plumber");
 
-  // Modals state
-  const [selectedWorkerForBooking, setSelectedWorkerForBooking] = useState(null);
-  const [selectedWorkerForProfile, setSelectedWorkerForProfile] = useState(null);
+  // Step 2: Customer Priority ('proximity' | 'ratings' | 'price') + Emergency Toggle
+  const [priority, setPriority] = useState("proximity"); // 'proximity' | 'ratings' | 'price'
+  const [isEmergency, setIsEmergency] = useState(false);
+
+  // Step 3 & 4: Selected Worker for Chat / Bargaining
+  const [chattingWorker, setChattingWorker] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Verification modal for worker bio inspection
+  const [inspectWorker, setInspectWorker] = useState(null);
+
+  // Payment & Review modals
   const [paymentBooking, setPaymentBooking] = useState(null);
   const [reviewBooking, setReviewBooking] = useState(null);
 
-  // Icon mapping
   const iconMap = {
-    Wrench: Wrench,
-    Zap: Zap,
-    Hammer: Hammer,
-    Sparkles: Sparkle,
-    Cpu: Cpu,
-    Trees: Trees,
-    Paintbrush: Paintbrush,
-    Package: Package,
+    Wrench,
+    Zap,
+    Hammer,
+    Sparkles,
+    Cpu,
+    Trees,
+    Paintbrush,
+    Package,
   };
 
-  // Filter and smart rank workers
-  const filteredWorkers = workers
-    .filter((w) => {
-      // Emergency mode prioritizes immediate availability
-      if (emergencyActive && !w.isAvailable) return false;
+  const selectedServiceObj = services.find((s) => s.id === selectedServiceId) || services[0];
 
-      // Category filter
-      if (selectedService && w.serviceId !== selectedService) return false;
+  // Step 3: Best Suggested Workers filtered & sorted by user priority + emergency
+  const suggestedWorkers = useMemo(() => {
+    return workers
+      .filter((w) => {
+        // Must match selected trade/service
+        if (w.serviceId !== selectedServiceId) return false;
 
-      // Search query filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = w.name.toLowerCase().includes(q);
-        const matchService = w.serviceName.toLowerCase().includes(q);
-        const matchSkill = w.skills.some((s) => s.toLowerCase().includes(q));
-        if (!matchName && !matchService && !matchSkill) return false;
-      }
+        // Emergency filter: only show workers near and available for emergency
+        if (isEmergency) {
+          return w.isAvailable && w.emergencyAvailable !== false;
+        }
 
-      // Distance filter
-      if (distanceFilter === "2km" && w.distanceKm > 2.0) return false;
-      if (distanceFilter === "5km" && w.distanceKm > 5.0) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (isEmergency) {
+          // Emergency strictly sorts by shortest ETA / distance
+          const etaA = a.etaMinutes || a.distanceKm * 6;
+          const etaB = b.etaMinutes || b.distanceKm * 6;
+          return etaA - etaB;
+        }
 
-      // Rating filter
-      if (w.rating < minRatingFilter) return false;
+        if (priority === "proximity") {
+          return a.distanceKm - b.distanceKm;
+        }
+        if (priority === "ratings") {
+          return b.rating - a.rating;
+        }
+        if (priority === "price") {
+          return (a.hourlyRate || 350) - (b.hourlyRate || 350);
+        }
+        return 0;
+      });
+  }, [workers, selectedServiceId, priority, isEmergency]);
 
-      return true;
-    })
-    .sort((a, b) => {
-      // Smart ranking formula: availability + distance + rating + jobs
-      const scoreA = (a.isAvailable ? 20 : 0) + a.rating * 10 - a.distanceKm * 2 + (a.completedJobs / 20);
-      const scoreB = (b.isAvailable ? 20 : 0) + b.rating * 10 - b.distanceKm * 2 + (b.completedJobs / 20);
-      return scoreB - scoreA;
-    });
-
-  // Target active booking for visual tracker
+  // Active / Most recent booking for profile tracker
   const activeBooking = bookings.find(
     (b) => b.status !== "Completed" || b.paymentStatus === "Pending"
   ) || bookings[0];
 
+  const handleOpenChat = (worker) => {
+    startChatSession(worker, selectedServiceObj);
+    setChattingWorker(worker);
+    setIsChatOpen(true);
+  };
+
   const handleBookingConfirmed = (newBookingData) => {
-    const created = createBooking(newBookingData);
-    setSelectedWorkerForBooking(null);
+    createBooking(newBookingData);
+    setIsChatOpen(false);
+    setChattingWorker(null);
     setActiveSubTab("bookings");
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Customer Hero / Emergency Alert Bar */}
-      <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
-        <div className="relative z-10 max-w-2xl">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-3 border border-emerald-500/30">
-            <Sparkles className="w-3.5 h-3.5" /> Direct Community Cooperative Platform
-          </span>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
-            Fair Rates for You. Full Dignity for Workers.
-          </h1>
-          <p className="text-xs sm:text-sm text-emerald-100/80 mt-2 leading-relaxed">
-            Zero 25-30% middleman markups. Every ₹450 you pay goes straight to your verified local electrician, plumber, or artisan.
-          </p>
-
-          {/* Quick Search Input */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-            <div className="relative w-full">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 'tap leakage', 'MCB fix', 'plumber', 'cleaner'..."
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-medium shadow-md focus:outline-emerald-500 border-0"
-              />
-            </div>
-
-            {/* Emergency SOS Toggle */}
-            <button
-              onClick={() => setEmergencyActive(!emergencyActive)}
-              className={`w-full sm:w-auto px-5 py-3 rounded-2xl font-bold text-xs shrink-0 transition flex items-center justify-center gap-2 shadow-lg ${
-                emergencyActive
-                  ? "bg-rose-500 text-white animate-pulse"
-                  : "bg-rose-50 text-rose-700 hover:bg-rose-100"
-              }`}
-            >
-              <AlertTriangle className="w-4 h-4" />
-              <span>{emergencyActive ? "Emergency Mode Active" : "Emergency SOS (Urgent)"}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Primary Sub-Tab Switcher */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+    <div className="space-y-6">
+      
+      {/* Sleek Sub-Tab Nav (Book a Job vs My Profile / Active Booking) */}
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveSubTab("find")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeSubTab === "find"
-                ? "bg-emerald-600 text-white shadow-xs"
+                ? "bg-slate-900 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            Find Local Service Providers ({filteredWorkers.length})
+            1. Book a Job
           </button>
+          
           <button
             onClick={() => setActiveSubTab("bookings")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               activeSubTab === "bookings"
-                ? "bg-emerald-600 text-white shadow-xs"
+                ? "bg-slate-900 text-white shadow-xs"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            <span>Live Bookings & Timeline</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>2. My Active Booking & Live ETA</span>
+            {activeBooking && activeBooking.status !== "Completed" && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            )}
           </button>
         </div>
 
-        <span className="text-xs text-slate-500 hidden sm:inline">
-          Location: <strong>Indiranagar, Bengaluru (Demo Society)</strong>
-        </span>
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Indiranagar, Bengaluru</span>
+        </div>
       </div>
 
-      {/* VIEW 1: FIND SERVICES & WORKERS */}
+      {/* ========================================================================= */}
+      {/* WORKFLOW VIEW: STEP 1 (JOB) -> STEP 2 (PRIORITY) -> STEP 3 (WORKERS)     */}
+      {/* ========================================================================= */}
       {activeSubTab === "find" && (
-        <div className="space-y-6">
-          {/* Service Categories Carousel/Grid */}
+        <div className="space-y-6 animate-in fade-in duration-200">
+          
+          {/* STEP 1: SELECT JOB NEEDED */}
           <div>
-            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base mb-3 flex items-center justify-between">
-              <span>Explore Cooperative Services</span>
-              <span className="text-xs text-slate-400 font-normal">Standard transparent rates</span>
-            </h3>
+            <div className="flex items-center justify-between mb-2.5">
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
+                  Step 1
+                </span>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  What job do you need?
+                </h2>
+              </div>
+              <span className="text-xs text-slate-400 font-medium">8 Services</span>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
               {services.map((srv) => {
-                const IconComponent = iconMap[srv.icon] || Wrench;
-                const isSelected = selectedService === srv.id;
+                const Icon = iconMap[srv.icon] || Wrench;
+                const isSelected = selectedServiceId === srv.id;
 
                 return (
                   <button
                     key={srv.id}
-                    onClick={() => setSelectedService(srv.id)}
-                    className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-between ${
+                    onClick={() => setSelectedServiceId(srv.id)}
+                    className={`p-3 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between gap-2 ${
                       isSelected
-                        ? "bg-emerald-50 border-emerald-500 shadow-sm ring-2 ring-emerald-500/20"
-                        : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
+                        ? "bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs scale-[1.02]"
+                        : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
                         isSelected
                           ? "bg-emerald-600 text-white shadow-xs"
-                          : "bg-slate-100 text-slate-700"
+                          : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      <IconComponent className="w-5 h-5" />
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-xs font-bold text-slate-900 leading-tight">
-                      {srv.name}
-                    </span>
-                    <span className="text-[10px] text-slate-500 mt-1 font-mono">
-                      From ₹{srv.basePrice}
-                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 leading-tight">
+                        {srv.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        ₹{srv.basePrice} base
+                      </p>
+                    </div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-              <span className="font-bold text-slate-700">Filters:</span>
+          {/* STEP 2: WHAT DO YOU PRIORITIZE? + EMERGENCY OPTION */}
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
+                  Step 2
+                </span>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  What do you prioritize for this job?
+                </h3>
+              </div>
 
-              {/* Distance filter */}
-              <select
-                value={distanceFilter}
-                onChange={(e) => setDistanceFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 font-medium text-slate-700"
+              {/* Emergency Switch Chip */}
+              <button
+                type="button"
+                onClick={() => setIsEmergency(!isEmergency)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                  isEmergency
+                    ? "bg-rose-600 text-white animate-pulse"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                }`}
               >
-                <option value="all">Any Distance</option>
-                <option value="2km">Within 2 km</option>
-                <option value="5km">Within 5 km</option>
-              </select>
-
-              {/* Rating filter */}
-              <select
-                value={minRatingFilter}
-                onChange={(e) => setMinRatingFilter(Number(e.target.value))}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 font-medium text-slate-700"
-              >
-                <option value={0}>Any Rating</option>
-                <option value={4.5}>4.5★ and above</option>
-                <option value={4.8}>4.8★ Top Rated</option>
-              </select>
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Emergency Service {isEmergency ? "(Active)" : "(Need Fast Help)"}</span>
+              </button>
             </div>
 
-            <div className="flex items-center gap-2 text-slate-500">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>All 42 workers are verified by Bengaluru East Guild</span>
+            {/* 3 Priority Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setPriority("proximity")}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-center gap-3 ${
+                  priority === "proximity" && !isEmergency
+                    ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-xl ${
+                    priority === "proximity" && !isEmergency
+                      ? "bg-white/20 text-white"
+                      : "bg-white text-emerald-600 shadow-2xs"
+                  }`}
+                >
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Proximity</p>
+                  <p
+                    className={`text-[11px] ${
+                      priority === "proximity" && !isEmergency ? "text-emerald-100" : "text-slate-500"
+                    }`}
+                  >
+                    Nearest workers within 2 km
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPriority("ratings")}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-center gap-3 ${
+                  priority === "ratings" && !isEmergency
+                    ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-xl ${
+                    priority === "ratings" && !isEmergency
+                      ? "bg-white/20 text-white"
+                      : "bg-white text-amber-500 shadow-2xs"
+                  }`}
+                >
+                  <Star className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Ratings</p>
+                  <p
+                    className={`text-[11px] ${
+                      priority === "ratings" && !isEmergency ? "text-emerald-100" : "text-slate-500"
+                    }`}
+                  >
+                    Highest customer ratings (4.8★+)
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPriority("price")}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex items-center gap-3 ${
+                  priority === "price" && !isEmergency
+                    ? "bg-emerald-600 text-white border-emerald-700 shadow-xs"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-xl ${
+                    priority === "price" && !isEmergency
+                      ? "bg-white/20 text-white"
+                      : "bg-white text-teal-600 shadow-2xs"
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold">Price Point</p>
+                  <p
+                    className={`text-[11px] ${
+                      priority === "price" && !isEmergency ? "text-emerald-100" : "text-slate-500"
+                    }`}
+                  >
+                    Lowest base cooperative rates
+                  </p>
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* Workers Recommendation Grid */}
+          {/* STEP 3: SYSTEM SUGGESTS BEST MATCHED WORKERS */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="font-extrabold text-slate-900 text-base">
-                  Recommended Verified Workers
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700">
+                  Step 3
+                </span>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900">
+                  Best Suggested Workers ({suggestedWorkers.length})
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Intelligently ranked by skill, live proximity, and peer ratings.
-                </p>
               </div>
-
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                Cooperative Fair Price Guarantee
+              <span className="text-xs text-slate-500 font-medium">
+                Sorted by:{" "}
+                <strong className="text-slate-800 capitalize">
+                  {isEmergency ? "Emergency ETA" : priority}
+                </strong>
               </span>
             </div>
 
-            {filteredWorkers.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-                <p className="text-sm font-bold text-slate-700">No workers match this filter criteria</p>
-                <p className="text-xs text-slate-400 mt-1">Try resetting distance or rating filters</p>
-                <button
-                  onClick={() => {
-                    setSelectedService("plumber");
-                    setDistanceFilter("all");
-                    setMinRatingFilter(0);
-                    setSearchQuery("");
-                  }}
-                  className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold"
-                >
-                  Reset Filters
-                </button>
+            {suggestedWorkers.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-3xl border border-slate-200">
+                <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                <p className="text-sm font-bold text-slate-800">
+                  No workers currently marked available for this filter.
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Try turning off Emergency mode or selecting another service.
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredWorkers.map((worker, idx) => (
-                  <WorkerCard
-                    key={worker.id}
-                    worker={worker}
-                    isSmartRecommended={idx === 0} // Top ranked worker gets the smart match banner
-                    onBookNow={(w) => setSelectedWorkerForBooking(w)}
-                    onSelectProfile={(w) => setSelectedWorkerForProfile(w)}
-                  />
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {suggestedWorkers.map((worker) => {
+                  const etaMins = worker.etaMinutes || Math.round(worker.distanceKm * 6 + 5);
+                  const canBargain = worker.canBargain !== false;
+
+                  return (
+                    <div
+                      key={worker.id}
+                      className="bg-white rounded-3xl border border-slate-200/80 hover:border-emerald-500 hover:shadow-md transition-all duration-200 p-5 flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Header: Photo, Name, Rate */}
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={worker.avatar}
+                            alt={worker.name}
+                            className="w-13 h-13 rounded-2xl object-cover border border-slate-200 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <h4 className="font-extrabold text-sm text-slate-900 truncate">
+                                {worker.name}
+                              </h4>
+                              <span className="text-xs font-extrabold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg shrink-0">
+                                ₹{worker.hourlyRate || 350}/hr
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-500 font-medium">{worker.serviceName}</p>
+
+                            <div className="flex items-center gap-3 text-xs text-slate-600 mt-1 flex-wrap font-medium">
+                              <span className="flex items-center gap-1 font-bold text-amber-700">
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                                {worker.rating} ({worker.reviewsCount})
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-slate-400" />
+                                {worker.distanceKm} km
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ATTRACTION TAGS (Can be bargained with, Flat fixed price, Quickest in job, e-Shram) */}
+                        <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
+                          {/* e-Shram Tag */}
+                          {worker.isEshramVerified ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2 py-0.5 rounded-md">
+                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                              e-Shram Verified
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                              Self-Declared
+                            </span>
+                          )}
+
+                          {/* Bargain Tag */}
+                          {canBargain ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                              🤝 Can be bargained with
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                              🔒 Flat fixed price
+                            </span>
+                          )}
+
+                          {/* Quickest in the job ETA tag */}
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
+                            ⚡ {etaMins} mins away
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Button: Connect & Chat (Step 4) */}
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setInspectWorker(worker)}
+                          className="py-2 px-3 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+                        >
+                          Bio
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenChat(worker)}
+                          className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Select & Chat / Bargain</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* VIEW 2: BOOKINGS, LIVE TRACKER & SETTLEMENT */}
+      {/* ========================================================================= */}
+      {/* VIEW 2: ACTIVE BOOKING & LIVE MINUTES AWAY ON PROFILE                     */}
+      {/* ========================================================================= */}
       {activeSubTab === "bookings" && (
-        <div className="space-y-6">
-          {activeBooking ? (
-            <>
-              {/* Visual 5-Stage Timeline Tracker */}
-              <BookingTracker
-                booking={activeBooking}
-                onMoveToNextStage={(bId, nextStage) => updateBookingStatus(bId, nextStage)}
-              />
-
-              {/* Action trigger for Payment / Rating depending on status */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-extrabold text-slate-900 text-sm">
-                    {activeBooking.status === "Completed" && activeBooking.paymentStatus === "Pending"
-                      ? "Service Completed! Settle Payment"
-                      : activeBooking.status === "Completed" && activeBooking.paymentStatus === "Paid" && !activeBooking.rating
-                      ? "Payment Settled! Leave a 5★ Review"
-                      : "Booking is in Progress"}
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {activeBooking.status === "Completed"
-                      ? "Worker has reported task completion. Review charges and finalize."
-                      : "Worker will arrive during your scheduled time slot."}
-                  </p>
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {!activeBooking ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200">
+              <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <h3 className="text-base font-extrabold text-slate-800">No active bookings yet</h3>
+              <p className="text-xs text-slate-500 mt-1 mb-4">
+                Pick a service and select a verified local worker in 3 simple steps.
+              </p>
+              <button
+                onClick={() => setActiveSubTab("find")}
+                className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Find a Worker Now
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
+              {/* Top ETA Status Banner */}
+              <div className="bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-xl">
+                    ⏱️
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                        {activeBooking.status}
+                      </span>
+                      <span className="text-xs text-emerald-100 font-mono">ID: {activeBooking.id}</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black mt-0.5">
+                      Worker is {activeBooking.etaMinutes || 12} Minutes Away
+                    </h2>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {activeBooking.status === "Completed" && activeBooking.paymentStatus === "Pending" && (
+                {/* Service OTP */}
+                <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex items-center gap-3">
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-200 block">Service OTP</span>
+                    <span className="font-mono text-lg font-black tracking-widest text-white">
+                      {activeBooking.serviceOtp || "4821"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Milestones */}
+              <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                  <span className="text-emerald-700 flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Booked
+                  </span>
+                  <span className="text-emerald-700 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    On the Way (~{activeBooking.etaMinutes || 12}m)
+                  </span>
+                  <span className={activeBooking.status === "In Progress" || activeBooking.status === "Completed" ? "text-emerald-700" : ""}>
+                    Service Started
+                  </span>
+                  <span className={activeBooking.status === "Completed" ? "text-emerald-700" : ""}>
+                    Completed
+                  </span>
+                </div>
+              </div>
+
+              {/* Worker Profile on Customer Dashboard */}
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-4">
+                  <img
+                    src={activeBooking.workerAvatar || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80"}
+                    alt={activeBooking.workerName}
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-xs"
+                  />
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">{activeBooking.workerName}</h3>
+                    <p className="text-xs text-slate-500 font-medium">{activeBooking.serviceCategory || activeBooking.serviceName}</p>
+                    <p className="text-xs text-slate-600 font-bold mt-1">Phone: {activeBooking.workerPhone || "+91 98765 43210"}</p>
+                    
+                    <div className="mt-2 flex items-center gap-2">
+                      <a
+                        href={`tel:${activeBooking.workerPhone || "9876543210"}`}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>Call Worker</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Agreed Price</span>
+                    <span className="font-extrabold text-slate-900 text-sm font-mono">
+                      ₹{activeBooking.totalAmount || 380}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Payment Status</span>
+                    <span
+                      className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                        activeBooking.paymentStatus === "Paid"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {activeBooking.paymentStatus || "Pending at door"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Location</span>
+                    <span className="font-medium text-slate-700">{activeBooking.address || "Your Address"}</span>
+                  </div>
+
+                  {/* Payment Button if not paid */}
+                  {activeBooking.paymentStatus !== "Paid" && (
                     <button
                       onClick={() => setPaymentBooking(activeBooking)}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md transition"
+                      className="w-full mt-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
                     >
-                      Pay ₹{activeBooking.totalAmount} (Demo Payment) →
-                    </button>
-                  )}
-
-                  {activeBooking.status === "Completed" && activeBooking.paymentStatus === "Paid" && !activeBooking.rating && (
-                    <button
-                      onClick={() => setReviewBooking(activeBooking)}
-                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold rounded-xl shadow-md transition"
-                    >
-                      Rate {activeBooking.workerName} (5★ Review) →
+                      Pay ₹{activeBooking.totalAmount || 380} via UPI / Cash
                     </button>
                   )}
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <p className="text-sm font-bold text-slate-800">No active bookings right now</p>
-              <p className="text-xs text-slate-400 mt-1">Book a verified worker to see live tracking</p>
-              <button
-                onClick={() => setActiveSubTab("find")}
-                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold"
-              >
-                Browse Services
-              </button>
             </div>
           )}
-
-          {/* Historical / Past Bookings Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-            <h3 className="font-extrabold text-slate-900 text-base mb-4">
-              All Household Bookings
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 uppercase font-semibold">
-                    <th className="pb-3">Booking ID</th>
-                    <th className="pb-3">Service</th>
-                    <th className="pb-3">Worker</th>
-                    <th className="pb-3">Total Fare</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {bookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-slate-50/80">
-                      <td className="py-3 font-mono font-bold text-slate-900">{b.id}</td>
-                      <td className="py-3 font-semibold text-slate-800">{b.serviceName}</td>
-                      <td className="py-3 text-slate-600">{b.workerName}</td>
-                      <td className="py-3 font-mono font-bold text-emerald-700">₹{b.totalAmount}</td>
-                      <td className="py-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        {b.status === "Completed" && b.paymentStatus === "Pending" ? (
-                          <button
-                            onClick={() => setPaymentBooking(b)}
-                            className="text-emerald-700 font-bold hover:underline"
-                          >
-                            Pay Now
-                          </button>
-                        ) : b.status === "Completed" && !b.rating ? (
-                          <button
-                            onClick={() => setReviewBooking(b)}
-                            className="text-amber-600 font-bold hover:underline"
-                          >
-                            Rate Worker
-                          </button>
-                        ) : (
-                          <span className="text-slate-400">View Details</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Booking Form Modal */}
-      <BookingModal
-        isOpen={Boolean(selectedWorkerForBooking)}
-        onClose={() => setSelectedWorkerForBooking(null)}
-        worker={selectedWorkerForBooking}
+      {/* Step 4: Interactive Chat & Bargain Window Modal */}
+      <ChatBargainModal
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        worker={chattingWorker}
         onConfirmBooking={handleBookingConfirmed}
+        isEmergency={isEmergency}
       />
 
-      {/* Worker Verification Details Modal */}
+      {/* Worker Bio / Verification inspection modal */}
       <WorkerVerificationModal
-        isOpen={Boolean(selectedWorkerForProfile)}
-        onClose={() => setSelectedWorkerForProfile(null)}
-        worker={selectedWorkerForProfile}
+        isOpen={Boolean(inspectWorker)}
+        onClose={() => setInspectWorker(null)}
+        worker={inspectWorker}
       />
 
-      {/* Transparent Payment Modal */}
-      <MockPaymentModal
-        isOpen={Boolean(paymentBooking)}
-        onClose={() => setPaymentBooking(null)}
-        booking={paymentBooking}
-        onPaymentSuccess={(bId) => {
-          completePayment(bId);
-          setPaymentBooking(null);
-        }}
-      />
+      {/* Payment Modal */}
+      {paymentBooking && (
+        <MockPaymentModal
+          isOpen={Boolean(paymentBooking)}
+          onClose={() => setPaymentBooking(null)}
+          booking={paymentBooking}
+          onSuccess={() => {
+            completePayment(paymentBooking.id);
+            setPaymentBooking(null);
+            setReviewBooking(paymentBooking);
+          }}
+        />
+      )}
 
-      {/* Rating & Review Modal */}
-      <ReviewModal
-        isOpen={Boolean(reviewBooking)}
-        onClose={() => setReviewBooking(null)}
-        booking={reviewBooking}
-        onSubmitReview={(bId, rating, comment, tags) => {
-          submitReview(bId, rating, comment, tags);
-          setReviewBooking(null);
-        }}
-      />
+      {/* Review Modal */}
+      {reviewBooking && (
+        <ReviewModal
+          isOpen={Boolean(reviewBooking)}
+          onClose={() => setReviewBooking(null)}
+          booking={reviewBooking}
+          onSubmit={(bId, rating, text, tags) => {
+            submitReview(bId, rating, text, tags);
+            setReviewBooking(null);
+          }}
+        />
+      )}
     </div>
   );
 };

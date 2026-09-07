@@ -67,44 +67,56 @@ export const JobRequestCard = ({ booking, onAccept, onReject, onStartService, on
 
       {/* Financial payout highlight for worker */}
       <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 flex items-center justify-between text-xs my-2">
-        <span className="font-semibold text-emerald-800">Direct Take-Home Earnings:</span>
-        <span className="font-mono font-black text-emerald-900 text-base">
-          ₹{booking.workerPayout}
-        </span>
+        <div>
+          <span className="font-semibold text-emerald-800 block">Agreed Customer Rate:</span>
+          <span className="text-[10px] text-slate-500">
+            {booking.totalAmount !== booking.workerPayout ? "Co-op Take-home (0% commission)" : "Standard rate"}
+          </span>
+        </div>
+        <div className="text-right">
+          <span className="font-mono font-black text-emerald-900 text-base">
+            ₹{booking.totalAmount || booking.workerPayout}
+          </span>
+          <span className="text-[10px] text-emerald-700 font-bold block">
+            {booking.etaMinutes || 12} mins away
+          </span>
+        </div>
       </div>
 
       {/* Action Buttons based on status */}
-      <div className="pt-2 flex items-center gap-2">
+      <div className="pt-2 flex flex-col gap-2">
         {isPending && (
-          <>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onReject(booking.id)}
-              className="flex-1 py-2 px-3 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition flex items-center justify-center gap-1"
+              className="flex-1 py-2 px-3 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
             >
               <XCircle className="w-3.5 h-3.5" /> Decline
             </button>
             <button
               onClick={() => onAccept(booking.id)}
-              className="flex-2 py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1"
+              className="flex-2 py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" /> Accept Job Request
             </button>
-          </>
+          </div>
         )}
 
         {isAccepted && (
-          <button
-            onClick={() => onStartService(booking.id)}
-            className="w-full py-2.5 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
-          >
-            <Play className="w-3.5 h-3.5 fill-white" /> Arrived at Home & Start Service
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => onStartService(booking.id)}
+              className="w-full py-2.5 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" /> Arrived at Home & Start Service
+            </button>
+          </div>
         )}
 
         {isInService && (
           <button
             onClick={() => onCompleteService(booking.id)}
-            className="w-full py-2.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <CheckCheck className="w-4 h-4" /> Service Finished & Request Settlement
           </button>

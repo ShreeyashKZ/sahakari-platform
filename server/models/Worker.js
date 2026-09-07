@@ -45,6 +45,10 @@ const workerSchema = new mongoose.Schema(
     hasEshram: { type: Boolean, default: false },
     eshramNumber: { type: String, default: "" },
     isEshramVerified: { type: Boolean, default: false },
+    canBargain: { type: Boolean, default: true },
+    emergencyAvailable: { type: Boolean, default: true },
+    etaMinutes: { type: Number, default: 15 },
+    attractionTags: { type: [String], default: ["Can be bargained with", "Quickest in the job"] },
     earnings: {
       today: { type: Number, default: 0 },
       thisWeek: { type: Number, default: 0 },
