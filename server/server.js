@@ -557,6 +557,11 @@ app.post("/api/chat/session", (req, res) => {
   res.json({ success: true, session: memActiveChat });
 });
 
+app.delete("/api/chat/session", (req, res) => {
+  memActiveChat = null;
+  res.json({ success: true, message: "Chat session deleted" });
+});
+
 app.post("/api/chat/message", (req, res) => {
   const { sender, text, workerId } = req.body;
   if (!memActiveChat) {

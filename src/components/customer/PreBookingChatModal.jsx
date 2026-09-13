@@ -7,13 +7,10 @@ import {
   Star,
   MapPin,
   Clock,
-  Sparkles,
   ArrowRight,
-  DollarSign,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
-  Sliders,
   Award
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
@@ -29,14 +26,9 @@ export const PreBookingChatModal = ({
     activeChatSession,
     startChatSession,
     sendChatMessage,
-    submitBargainOffer,
   } = useApp();
 
   const [messageInput, setMessageInput] = useState("");
-  const [showBargainMeter, setShowBargainMeter] = useState(false);
-  const [customBargainPrice, setCustomBargainPrice] = useState(
-    worker ? (worker.hourlyRate ? Math.round(worker.hourlyRate * 0.9) : 300) : 300
-  );
   const messagesEndRef = useRef(null);
 
   // Initialize or ensure session exists for this worker
@@ -48,7 +40,6 @@ export const PreBookingChatModal = ({
           name: worker.serviceName,
         });
       }
-      setCustomBargainPrice(Math.round((worker.hourlyRate || 350) * 0.85));
     }
   }, [isOpen, worker]);
 
@@ -70,27 +61,16 @@ export const PreBookingChatModal = ({
     sendChatMessage("customer", text);
   };
 
-  const handleSendBargain = () => {
-    if (!customBargainPrice || customBargainPrice <= 0) return;
-    submitBargainOffer(customBargainPrice);
-    setShowBargainMeter(false);
-  };
-
   const isDiag = serviceOption === "diagnostic";
-  const baseRate = isDiag
+  const finalAgreedRate = isDiag
     ? Math.round((worker.hourlyRate || 350) * 0.5)
     : (worker.hourlyRate || 350);
-
-  const finalAgreedRate =
-    activeChatSession?.agreedPrice && !isDiag
-      ? activeChatSession.agreedPrice
-      : baseRate;
 
   const quickPrompts = [
     "Are you available to arrive within 20 mins?",
     "Can you bring spare tools & diagnostic meters?",
     "Do you provide a 30-day cooperative workmanship warranty?",
-    "Can you give an approximate estimate for pipe repair?",
+    "Can you give an approximate estimate for repair?",
   ];
 
   return (
@@ -108,45 +88,43 @@ export const PreBookingChatModal = ({
               />
               <span
                 title="Online & Available Now"
-                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse"
-              />
+                className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full flex items-center justify-center"
+              >
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+              </span>
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base sm:text-lg font-black text-white truncate">
+                <h3 className="text-base font-black text-white truncate">
                   {worker.name}
                 </h3>
-                {worker.isPoliceVerified && (
-                  <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                    🛡️ Police Cleared
-                  </span>
-                )}
-                {worker.isNsqfCertified && (
-                  <span className="text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-400/40 px-2 py-0.5 rounded-full">
-                    🎓 NSQF Certified
-                  </span>
-                )}
+                <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+                  Direct Chat
+                </span>
               </div>
-
-              <p className="text-xs text-emerald-200 mt-0.5 truncate">
-                {worker.serviceName} • {worker.distanceKm || 1.8} km away (ETA ~{worker.etaMinutes || 15}m)
+              <p className="text-xs text-emerald-200 mt-0.5">
+                {worker.serviceName} • {worker.experienceYears || 5}+ yrs exp
               </p>
-
-              <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-300 flex-wrap">
-                <span className="flex items-center gap-1 font-bold text-amber-300">
-                  <Star className="w-3 h-3 fill-amber-300" />
-                  {worker.rating} ({worker.reviewsCount || 42} reviews)
+              <div className="flex items-center gap-2 text-[11px] text-slate-300 mt-1">
+                <span className="flex items-center gap-1 font-bold text-amber-400">
+                  <Star className="w-3 h-3 fill-amber-400" /> {worker.rating || 4.9}
                 </span>
                 <span>•</span>
-                <span className="text-emerald-400 font-bold">
-                  Standard Rate: ₹{worker.hourlyRate || 350}/hr
+                <span className="flex items-center gap-1 text-slate-300">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  <span>{worker.distanceKm || 1.8} km away</span>
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-emerald-300 font-semibold">
+                  <Clock className="w-3 h-3 text-emerald-400" />
+                  <span>ETA ~{worker.etaMinutes || 15}m</span>
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <a
               href={`tel:${worker.phone}`}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition flex items-center gap-1 text-xs font-bold"
@@ -165,72 +143,19 @@ export const PreBookingChatModal = ({
           </div>
         </div>
 
-        {/* Sub-bar: Real-time status indicator & Bargain toggle */}
+        {/* Sub-bar: Real-time status indicator */}
         <div className="bg-emerald-50/80 border-b border-emerald-100 px-4 py-2 flex items-center justify-between text-xs text-emerald-950 shrink-0">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
             <span className="font-bold">Live Pre-Booking Consultation</span>
-            <span className="text-slate-500 hidden sm:inline">• Free chat before booking</span>
+            <span className="text-slate-500 hidden sm:inline">• Free direct chat</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowBargainMeter(!showBargainMeter)}
-            className="flex items-center gap-1 text-xs font-bold text-emerald-800 bg-white border border-emerald-200 px-2.5 py-1 rounded-lg hover:bg-emerald-50 transition cursor-pointer shadow-2xs"
-          >
-            <Sliders className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{showBargainMeter ? "Close Bargain Meter" : "Bargain / Negotiate Rate"}</span>
-          </button>
+          <span className="text-emerald-700 font-bold bg-white px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px] shadow-2xs flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Cooperative Fixed Rate</span>
+          </span>
         </div>
-
-        {/* Collapsible Bargain Meter Widget */}
-        {showBargainMeter && (
-          <div className="p-4 bg-gradient-to-b from-amber-50/70 to-white border-b border-amber-200 shrink-0 animate-in slide-in-from-top duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Democratic Rate Negotiation</span>
-              </span>
-              <span className="text-xs font-mono font-bold text-amber-900">
-                Base: ₹{worker.hourlyRate || 350}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <input
-                  type="range"
-                  min={Math.round((worker.hourlyRate || 350) * 0.6)}
-                  max={worker.hourlyRate || 350}
-                  step="10"
-                  value={customBargainPrice}
-                  onChange={(e) => setCustomBargainPrice(Number(e.target.value))}
-                  className="w-full accent-emerald-600 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
-                  <span>₹{Math.round((worker.hourlyRate || 350) * 0.6)} (Min fair rate)</span>
-                  <span className="text-emerald-700 font-bold font-mono text-xs">₹{customBargainPrice}</span>
-                  <span>₹{worker.hourlyRate || 350} (Standard)</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSendBargain}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition shadow-xs cursor-pointer h-10 shrink-0"
-              >
-                Send Offer ₹{customBargainPrice}
-              </button>
-            </div>
-
-            {activeChatSession?.bargainStatus === "accepted" && (
-              <div className="mt-2 p-2 bg-emerald-100 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Worker agreed to ₹{activeChatSession.agreedPrice}! Ready for booking.</span>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Scrollable Message Thread */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">

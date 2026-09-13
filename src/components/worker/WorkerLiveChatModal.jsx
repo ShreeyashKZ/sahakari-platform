@@ -23,6 +23,7 @@ export const WorkerLiveChatModal = ({
 }) => {
   const {
     activeChatSession,
+    startChatSession,
     sendChatMessage,
     respondToBargainOffer,
     bookings,
@@ -42,11 +43,17 @@ export const WorkerLiveChatModal = ({
   const handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (!messageInput.trim()) return;
+    if (!activeChatSession || activeChatSession.workerId !== worker.id) {
+      startChatSession(worker);
+    }
     sendChatMessage("worker", messageInput.trim());
     setMessageInput("");
   };
 
   const handleSendQuickReply = (text) => {
+    if (!activeChatSession || activeChatSession.workerId !== worker.id) {
+      startChatSession(worker);
+    }
     sendChatMessage("worker", text);
   };
 

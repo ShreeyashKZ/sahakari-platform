@@ -379,7 +379,7 @@ export const MasterLiveConsoleModal = ({ isOpen, onClose }) => {
                     <MessageSquare className="w-8 h-8 text-slate-600 mb-2" />
                     <p className="text-xs font-bold text-slate-400">No active customer chat yet</p>
                     <p className="text-[11px] text-slate-500 mt-1 max-w-xs">
-                      Open a service on the Customer side and click "Chat & Bargain" with any worker to view live messages here.
+                      Open a service on the Customer side and click "Chat" with any worker to view live messages here.
                     </p>
                   </div>
                 )}

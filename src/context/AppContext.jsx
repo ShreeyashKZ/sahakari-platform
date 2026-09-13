@@ -524,10 +524,24 @@ export const AppProvider = ({ children }) => {
 
   // 2. Worker updates booking stage
   const updateBookingStatus = async (bookingId, newStatus) => {
-    const nextBookings = bookings.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b));
+    let completedWorkerId = null;
+    const nextBookings = bookings.map((b) => {
+      if (b.id === bookingId) {
+        if (newStatus === "Completed") {
+          completedWorkerId = b.workerId;
+        }
+        return { ...b, status: newStatus };
+      }
+      return b;
+    });
     setBookings(nextBookings);
     localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
     broadcastSync("BOOKINGS_UPDATE", nextBookings);
+
+    // Delete/clear chat session when job is marked Completed
+    if (completedWorkerId) {
+      clearChatSession(completedWorkerId);
+    }
 
     if (apiConnected) {
       try {
@@ -600,6 +614,10 @@ export const AppProvider = ({ children }) => {
     broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     if (updatedBooking) {
+      // Once customer's offer is completed and payment is received, delete chat session with this worker
+      // so the next time they book the same worker, a brand new chat can be initiated
+      clearChatSession(updatedBooking.workerId);
+
       // Update worker earnings locally
       const nextWorkers = workers.map((w) => {
         if (w.id === updatedBooking.workerId) {
@@ -1090,7 +1108,7 @@ export const AppProvider = ({ children }) => {
       isPoliceVerified: Boolean(worker.isPoliceVerified),
       isNsqfCertified: Boolean(worker.isNsqfCertified),
       isShareholder: Boolean(worker.isShareholder),
-      canBargain: true,
+      canBargain: false,
       attractionTags: worker.attractionTags || ["Cooperative Verified"],
       messages: [
         {
@@ -1147,6 +1165,24 @@ export const AppProvider = ({ children }) => {
         }),
       }).catch((e) => console.warn("Backend message send error:", e));
     }
+  };
+
+  // Delete / clear chat session with worker once offer is completed and paid
+  const clearChatSession = (workerId = null) => {
+    setActiveChatSession((current) => {
+      if (workerId && current && current.workerId !== workerId) {
+        return current;
+      }
+      localStorage.removeItem("sahakari_active_chat");
+      broadcastSync("CHAT_UPDATE", null);
+
+      if (apiConnected) {
+        fetch(`${API_URL}/api/chat/session`, {
+          method: "DELETE",
+        }).catch((e) => console.warn("Backend chat delete error:", e));
+      }
+      return null;
+    });
   };
 
   const submitBargainOffer = (proposedPrice) => {
@@ -1590,6 +1626,7 @@ export const AppProvider = ({ children }) => {
         setActiveChatSession,
         startChatSession,
         sendChatMessage,
+        clearChatSession,
         submitBargainOffer,
         respondToBargainOffer,
         updateWorkerSettings,
