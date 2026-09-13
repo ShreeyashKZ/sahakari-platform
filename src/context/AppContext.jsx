@@ -194,25 +194,44 @@ export const AppProvider = ({ children }) => {
   };
 
   // Upgrade Diagnostic Inspection booking to Full Standard Repair
-  const upgradeBookingToFullRepair = (bookingId) => {
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === bookingId) {
-          const targetWorker = workers.find((w) => w.id === b.workerId);
-          const fullRate = b.standardPrice || targetWorker?.standardPrice || 400;
-          return {
-            ...b,
-            bookingType: "Full Standard Repair",
-            isDiagnostic: false,
-            serviceCharge: fullRate,
-            totalAmount: fullRate + (b.platformFee || 20),
-            workerPayout: fullRate,
-            upgradedAt: new Date().toISOString(),
-          };
-        }
-        return b;
-      })
-    );
+  const upgradeBookingToFullRepair = async (bookingId) => {
+    let upgradedRate = 400;
+
+    const nextBookings = bookings.map((b) => {
+      if (String(b.id) === String(bookingId)) {
+        const targetWorker = workers.find((w) => w.id === b.workerId);
+        const fullRate = Number(b.standardPrice || targetWorker?.standardPrice || targetWorker?.hourlyRate || 400);
+        upgradedRate = fullRate;
+        const fee = Number(b.platformFee || 20);
+        return {
+          ...b,
+          bookingType: "Full Standard Repair",
+          isDiagnostic: false,
+          canUpgradeToFull: false,
+          serviceCharge: fullRate,
+          totalAmount: fullRate + fee,
+          workerPayout: fullRate,
+          upgradedAt: new Date().toISOString(),
+        };
+      }
+      return b;
+    });
+
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
+
+    if (apiConnected) {
+      try {
+        await fetch(`${API_URL}/api/bookings/${bookingId}/upgrade`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fullRate: upgradedRate }),
+        });
+      } catch (e) {
+        console.warn("Backend upgrade sync error:", e);
+      }
+    }
   };
 
   // Housing Societies & RWA Context

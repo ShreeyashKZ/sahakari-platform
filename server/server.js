@@ -357,6 +357,50 @@ app.patch("/api/bookings/:id/status", async (req, res) => {
   }
 });
 
+// 6b. Upgrade Booking to Full Repair
+app.patch("/api/bookings/:id/upgrade", async (req, res) => {
+  const { id } = req.params;
+  const { fullRate } = req.body;
+  const standardPrice = Number(fullRate || 400);
+
+  try {
+    if (isDbConnected) {
+      const updated = await Booking.findOneAndUpdate(
+        { id },
+        {
+          bookingType: "Full Standard Repair",
+          isDiagnostic: false,
+          canUpgradeToFull: false,
+          serviceCharge: standardPrice,
+          workerPayout: standardPrice,
+          totalAmount: standardPrice + 20,
+          upgradedAt: new Date().toISOString(),
+        },
+        { new: true }
+      );
+      return res.json(updated);
+    } else {
+      memBookings = memBookings.map((b) =>
+        b.id === id
+          ? {
+              ...b,
+              bookingType: "Full Standard Repair",
+              isDiagnostic: false,
+              canUpgradeToFull: false,
+              serviceCharge: standardPrice,
+              workerPayout: standardPrice,
+              totalAmount: standardPrice + (b.platformFee || 20),
+              upgradedAt: new Date().toISOString(),
+            }
+          : b
+      );
+      return res.json(memBookings.find((b) => b.id === id));
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 7. Complete Payment & Disburse Earnings
 app.post("/api/bookings/:id/pay", async (req, res) => {
   const { id } = req.params;

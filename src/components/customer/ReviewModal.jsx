@@ -5,9 +5,7 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
   if (!isOpen || !booking) return null;
 
   const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState(
-    "Technician arrived promptly, solved the issue with genuine cooperative transparency, and charged the exact agreed rate. Outstanding service!"
-  );
+  const [comment, setComment] = useState("");
   const [selectedTags, setSelectedTags] = useState([
     "Punctual Arrival",
     "Fair & Transparent",
@@ -31,9 +29,10 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const finalComment = comment.trim() || "Service completed satisfactorily.";
     const submitFn = onSubmitReview || onSubmit;
     if (submitFn) {
-      submitFn(booking.id, rating, comment, selectedTags);
+      submitFn(booking.id, rating, finalComment, selectedTags);
     }
     onClose();
   };
@@ -117,18 +116,20 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
             </div>
           </div>
 
-          {/* Text feedback */}
+          {/* Text feedback (Optional) */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Detailed Feedback
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-slate-700">
+                Feedback
+              </label>
+              <span className="text-[11px] text-slate-400 font-medium">Optional</span>
+            </div>
             <textarea
               rows={3}
-              required
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="w-full text-xs font-medium px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-emerald-600"
-              placeholder="Tell other households about the workmanship..."
+              placeholder="Leave optional comments about the service quality..."
             />
           </div>
 
@@ -145,7 +146,7 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
               type="submit"
               className="w-2/3 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition"
             >
-              Submit 5★ Review →
+              Submit Review
             </button>
           </div>
         </form>

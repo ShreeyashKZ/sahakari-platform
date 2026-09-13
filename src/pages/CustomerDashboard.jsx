@@ -920,26 +920,43 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                     )}
                   </div>
 
-                  {/* Customer-Exclusive On-Site Upgrade Banner (ONLY available AFTER service starts for inspection bookings) */}
-                  {activeBooking.status === "Service Started" && (activeBooking.isDiagnostic || activeBooking.bookingType === "Diagnostic Inspection" || activeBooking.bookingType === "Diagnostic / Problem Inspection") && (
+                  {/* Customer-Exclusive On-Site Upgrade Banner */}
+                  {(activeBooking.isDiagnostic || activeBooking.bookingType === "Diagnostic Inspection" || activeBooking.bookingType === "Diagnostic / Problem Inspection" || activeBooking.bookingType?.includes("Diagnostic")) ? (
                     <div className="p-4 bg-amber-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-amber-900 text-xs">
                           <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>Problem Inspected On-Site? Ready for Full Repair</span>
+                          <span>Diagnostic Problem Inspection (₹{activeBooking.serviceCharge})</span>
                         </div>
                         <p className="text-[11px] text-amber-700 mt-0.5">
-                          {activeBooking.workerName} has diagnosed the issue. You can authorize the upgrade from Diagnostic Inspection (₹{activeBooking.serviceCharge}) to Full Standard Repair.
+                          Want {activeBooking.workerName} to complete the full repair on-site? Click below to upgrade to Full Standard Repair:
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleUpgradeBooking(activeBooking.id)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm h-11 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-black transition shadow-sm h-11 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Upgrade to Full Repair (₹{activeBooking.standardPrice || 400})</span>
                       </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-emerald-50 border-b border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="text-xs font-bold text-emerald-900 block">
+                            Full Standard Repair Active ✓
+                          </span>
+                          <p className="text-[11px] text-emerald-700 mt-0.5">
+                            Full repair authorized at ₹{activeBooking.serviceCharge || 400}. All parts & labour covered by 30-day warranty.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg shrink-0">
+                        Full Service
+                      </span>
                     </div>
                   )}
 
