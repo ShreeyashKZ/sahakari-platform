@@ -27,7 +27,7 @@ export function App() {
   // Sub-tabs inside Customer & Worker views
   const [customerSubTab, setCustomerSubTab] = useState("find"); // 'find' | 'bookings'
   const [workerSubTab, setWorkerSubTab] = useState("jobs"); // 'jobs' | 'earnings' | 'assembly'
-  const [adminSubTab, setAdminSubTab] = useState("overview"); // 'overview' | 'requests' | 'bulletin' | 'assembly'
+  const [adminSubTab, setAdminSubTab] = useState("overview"); // 'overview' | 'requests' | 'bulletin'
 
   // Admin bulk request modal
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -40,7 +40,6 @@ export function App() {
     if (tab === "earnings") setWorkerSubTab("earnings");
     if (tab === "assembly") {
       setWorkerSubTab("assembly");
-      setAdminSubTab("assembly");
     }
     if (tab === "bulletin") setAdminSubTab("bulletin");
     if (tab === "requests") setAdminSubTab("requests");

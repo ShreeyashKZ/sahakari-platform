@@ -406,6 +406,8 @@ export const AppProvider = ({ children }) => {
             setBookings(event.data.payload);
           } else if (event.data.type === "WORKERS_UPDATE") {
             setWorkers(event.data.payload);
+          } else if (event.data.type === "COMMUNITY_REQUESTS_UPDATE") {
+            setCommunityRequests(event.data.payload);
           }
         };
       }
@@ -426,6 +428,11 @@ export const AppProvider = ({ children }) => {
         try {
           const parsed = event.newValue ? JSON.parse(event.newValue) : [];
           setWorkers(parsed);
+        } catch (e) {}
+      } else if (event.key === "sahakari_community_requests") {
+        try {
+          const parsed = event.newValue ? JSON.parse(event.newValue) : [];
+          setCommunityRequests(parsed);
         } catch (e) {}
       }
     };
@@ -714,7 +721,12 @@ export const AppProvider = ({ children }) => {
       cooperativeBonus: "₹300 community welfare contribution included",
       ...requestData,
     };
-    setCommunityRequests((prev) => [newReq, ...prev]);
+    setCommunityRequests((prev) => {
+      const updated = [newReq, ...prev];
+      localStorage.setItem("sahakari_community_requests", JSON.stringify(updated));
+      broadcastSync("COMMUNITY_REQUESTS_UPDATE", updated);
+      return updated;
+    });
 
     if (apiConnected) {
       try {
@@ -725,6 +737,44 @@ export const AppProvider = ({ children }) => {
         });
       } catch (e) {
         console.warn("Community request sync error:", e);
+      }
+    }
+  };
+
+  // 5b. Worker joins/accepts a Community Bulk Maintenance Request
+  const joinCommunityRequest = async (requestId, workerId) => {
+    let updatedRequests = [];
+    setCommunityRequests((prev) => {
+      updatedRequests = prev.map((req) => {
+        if (req.id === requestId) {
+          const currentAssigned = req.assignedWorkerIds || [];
+          if (currentAssigned.includes(workerId)) {
+            return req;
+          }
+          const nextAssigned = [...currentAssigned, workerId];
+          const isFilled = nextAssigned.length >= (req.workersNeeded || 1);
+          return {
+            ...req,
+            assignedWorkerIds: nextAssigned,
+            status: isFilled ? "In Progress" : "Open for Collective",
+          };
+        }
+        return req;
+      });
+      localStorage.setItem("sahakari_community_requests", JSON.stringify(updatedRequests));
+      broadcastSync("COMMUNITY_REQUESTS_UPDATE", updatedRequests);
+      return updatedRequests;
+    });
+
+    if (apiConnected) {
+      try {
+        await fetch(`${API_URL}/api/community-requests/${requestId}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workerId }),
+        });
+      } catch (e) {
+        console.warn("Community request join sync error:", e);
       }
     }
   };
@@ -1558,6 +1608,7 @@ export const AppProvider = ({ children }) => {
         completePayment,
         submitReview,
         createCommunityRequest,
+        joinCommunityRequest,
         resetDemoData,
         proposals,
         castVote,

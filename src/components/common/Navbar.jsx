@@ -193,17 +193,6 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
                     <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
                     <span>Neighborhood Bulletin</span>
                   </button>
-                  <button
-                    onClick={() => setActiveTab("assembly")}
-                    className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
-                      activeTab === "assembly"
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "text-indigo-700 hover:bg-indigo-50"
-                    }`}
-                  >
-                    <Vote className="w-3.5 h-3.5" />
-                    <span>Assembly</span>
-                  </button>
                 </>
               )}
 
@@ -402,15 +391,6 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
             >
               <Zap className="w-5 h-5 mb-0.5 text-amber-500 fill-amber-400" />
               <span>Bulletin</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("assembly")}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-semibold transition min-h-[44px] min-w-[56px] ${
-                activeTab === "assembly" ? "text-indigo-700 bg-indigo-50 font-bold" : "text-slate-500"
-              }`}
-            >
-              <Vote className="w-5 h-5 mb-0.5" />
-              <span>Assembly</span>
             </button>
           </>
         )}

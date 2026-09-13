@@ -507,6 +507,39 @@ app.post("/api/community-requests", async (req, res) => {
   }
 });
 
+app.post("/api/community-requests/:id/join", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { workerId } = req.body;
+
+    if (isDbConnected) {
+      const doc = await CommunityRequest.findOne({ id });
+      if (!doc) return res.status(404).json({ error: "Task not found" });
+      if (!doc.assignedWorkerIds.includes(workerId)) {
+        doc.assignedWorkerIds.push(workerId);
+        if (doc.assignedWorkerIds.length >= (doc.workersNeeded || 1)) {
+          doc.status = "In Progress";
+        }
+        await doc.save();
+      }
+      return res.json(doc);
+    } else {
+      const task = memRequests.find((r) => r.id === id);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      if (!task.assignedWorkerIds) task.assignedWorkerIds = [];
+      if (!task.assignedWorkerIds.includes(workerId)) {
+        task.assignedWorkerIds.push(workerId);
+        if (task.assignedWorkerIds.length >= (task.workersNeeded || 1)) {
+          task.status = "In Progress";
+        }
+      }
+      return res.json(task);
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 10. Overall Cooperative Metrics
 app.get("/api/metrics", (req, res) => {
   res.json(memMetrics);

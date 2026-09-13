@@ -13,14 +13,12 @@ import {
   Copy,
   Check,
   Zap,
-  Vote,
   ExternalLink,
   MessageCircle
 } from "lucide-react";
 import { StatCard } from "../components/common/UIComponents";
 import { useApp } from "../context/AppContext";
 import { QuickJobsSection } from "../components/customer/QuickJobsSection";
-import CooperativeAssemblyTab from "../components/worker/CooperativeAssemblyTab";
 
 export const AdminDashboard = ({ 
   activeSubTab = "overview", 
@@ -170,18 +168,6 @@ export const AdminDashboard = ({
         >
           <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
           <span>Neighborhood Bulletin & Quick Gigs</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab("assembly")}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 h-11 ${
-            activeSubTab === "assembly"
-              ? "bg-indigo-600 text-white shadow-xs"
-              : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-          }`}
-        >
-          <Vote className="w-4 h-4" />
-          <span>Democratic Assembly</span>
         </button>
       </div>
 
@@ -391,10 +377,6 @@ export const AdminDashboard = ({
         </div>
       )}
 
-      {/* SUBTAB 4: DEMOCRATIC ASSEMBLY */}
-      {activeSubTab === "assembly" && (
-        <CooperativeAssemblyTab isRwaView={true} />
-      )}
 
     </div>
   );

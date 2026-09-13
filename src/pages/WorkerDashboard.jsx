@@ -23,7 +23,10 @@ import {
   Users,
   Check,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Calendar,
+  Layers
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { JobRequestCard } from "../components/worker/JobRequestCard";
@@ -43,6 +46,7 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
     acceptBookingOffer,
     declineBookingOffer,
     communityRequests,
+    joinCommunityRequest,
     updateWorkerSettings,
     purchaseMemberShare,
     activeChatSession,
@@ -80,6 +84,27 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
     (b) => b.status !== "Requested" && b.status !== "Completed" && b.status !== "Cancelled"
   );
   const completedJobs = workerBookings.filter((b) => b.status === "Completed");
+
+  // Helper to parse numeric budget from strings like "₹6,800"
+  const parseBudgetNumber = (budgetStr) => {
+    if (typeof budgetStr === "number") return budgetStr;
+    const num = parseInt(String(budgetStr || "").replace(/[^0-9]/g, ""), 10);
+    return isNaN(num) ? 4000 : num;
+  };
+
+  // Filter RWA community bulk maintenance tasks eligible for this worker's trade
+  const eligibleCommunityRequests = communityRequests.filter((req) => {
+    if (!currentWorker || !currentWorker.serviceId) return false;
+    const workerTrade = currentWorker.serviceId.toLowerCase();
+    const taskCat = (req.category || "").toLowerCase();
+    return taskCat === workerTrade || taskCat === "all" || taskCat === "";
+  });
+
+  const unjoinedCommunityRequests = eligibleCommunityRequests.filter(
+    (req) => !req.assignedWorkerIds?.includes(currentWorker.id)
+  );
+
+  const totalIncomingOffersCount = pendingRequests.length + unjoinedCommunityRequests.length;
 
   // Check if there is an active live chat with customer for this worker
   const hasActiveChat = activeChatSession && (
@@ -120,6 +145,10 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
             const wNsqf = Boolean(w.isNsqfCertified);
             const wVerified = wPcc && wNsqf;
             const wPendingOffers = bookings.filter((b) => b.workerId === w.id && b.status === "Requested").length;
+            const wCommunityOffers = communityRequests.filter(
+              (r) => (r.category || "").toLowerCase() === (w.serviceId || "").toLowerCase() && !r.assignedWorkerIds?.includes(w.id)
+            ).length;
+            const wTotalOffers = wPendingOffers + wCommunityOffers;
 
             return (
               <button
@@ -136,9 +165,9 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                 }`}
               >
                 {/* Live offer badge */}
-                {wPendingOffers > 0 && (
+                {wTotalOffers > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-black text-[9px] animate-pulse shadow-xs">
-                    {wPendingOffers} Offer{wPendingOffers > 1 ? "s" : ""}
+                    {wTotalOffers} Offer{wTotalOffers > 1 ? "s" : ""}
                   </span>
                 )}
 
@@ -556,9 +585,9 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         >
           <Briefcase className="w-4 h-4" />
           <span>Job Queue & Offers</span>
-          {pendingRequests.length > 0 && (
+          {totalIncomingOffersCount > 0 && (
             <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-black">
-              {pendingRequests.length}
+              {totalIncomingOffersCount}
             </span>
           )}
         </button>
@@ -592,87 +621,248 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
       {activeSubTab === "jobs" && (
         <div className="space-y-6">
           
-          {/* REAL-TIME INCOMING JOB OFFERS */}
-          {pendingRequests.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-                  <span>Real-Time Incoming Offers ({pendingRequests.length})</span>
-                </h3>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  ⚡ Live Cross-Device Sync Active
-                </span>
-              </div>
+          {/* AVAILABLE JOB OFFERS SECTION */}
+          {/* Rule: Direct Customer Job Offers MUST stay on top. RWA Community Collective Orders appear at last/bottom. */}
+          <div className="space-y-4">
+            
+            {/* 1. DIRECT CUSTOMER JOB OFFERS (PRIORITY 1: ON TOP) */}
+            {pendingRequests.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                    <span>Direct Customer Job Offers ({pendingRequests.length})</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                      Priority 1 • Direct Booking
+                    </span>
+                  </h3>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    ⚡ Live Direct Offer
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pendingRequests.map((b) => (
-                  <div
-                    key={b.id}
-                    className="bg-white rounded-3xl border-2 border-emerald-500 shadow-lg p-5 flex flex-col justify-between space-y-3 relative overflow-hidden animate-in fade-in"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider">
-                            New Offer
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">#{b.id}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pendingRequests.map((b) => (
+                    <div
+                      key={b.id}
+                      className="bg-white rounded-3xl border-2 border-emerald-500 shadow-lg p-5 flex flex-col justify-between space-y-3 relative overflow-hidden animate-in fade-in"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider">
+                              Direct Offer
+                            </span>
+                            <span className="text-xs text-slate-400 font-mono">#{b.id}</span>
+                          </div>
+                          <h4 className="text-base font-extrabold text-slate-900 mt-1">
+                            {b.customerName || "Customer"}
+                          </h4>
+                          <p className="text-xs text-slate-500">{b.serviceName}</p>
+                          <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{b.address || "Society Locality"}</span>
+                          </p>
                         </div>
-                        <h4 className="text-base font-extrabold text-slate-900 mt-1">
-                          {b.customerName || "Customer"}
-                        </h4>
-                        <p className="text-xs text-slate-500">{b.serviceName}</p>
-                        <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{b.address || "Society Locality"}</span>
-                        </p>
+
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                            Worker Payout
+                          </span>
+                          <span className="text-lg font-black text-emerald-700 font-mono">
+                            ₹{b.workerPayout || b.serviceCharge}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">100% Retained</span>
+                        </div>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                          Worker Payout
-                        </span>
-                        <span className="text-lg font-black text-emerald-700 font-mono">
-                          ₹{b.workerPayout || b.serviceCharge}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block">100% Retained</span>
+                      <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => acceptBookingOffer(b.id)}
+                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>Accept Offer</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowWorkerChatModal(true)}
+                          className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer h-11 flex items-center gap-1"
+                          title="Chat with customer before accepting"
+                        >
+                          <MessageCircle className="w-4 h-4 text-emerald-700" />
+                          <span className="hidden sm:inline">Chat</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => declineBookingOffer(b.id)}
+                          className="py-2.5 px-3 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer h-11"
+                        >
+                          Decline
+                        </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => acceptBookingOffer(b.id)}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span>Accept Offer</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowWorkerChatModal(true)}
-                        className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer h-11 flex items-center gap-1"
-                        title="Chat with customer before accepting"
-                      >
-                        <MessageCircle className="w-4 h-4 text-emerald-700" />
-                        <span className="hidden sm:inline">Chat</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => declineBookingOffer(b.id)}
-                        className="py-2.5 px-3 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer h-11"
-                      >
-                        Decline
-                      </button>
+            {/* 2. RWA SOCIETY BULK & COLLECTIVE MAINTENANCE TASKS (PRIORITY 2: AT LAST / BOTTOM) */}
+            {eligibleCommunityRequests.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-slate-200/80 pt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-sm text-slate-900">
+                          RWA Society Collective & Bulk Maintenance Tasks ({eligibleCommunityRequests.length})
+                        </h4>
+                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                          Community Work Orders
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Collective maintenance tasks published by RWAs & Housing Societies for {currentWorker.serviceName || "your trade"}.
+                      </p>
                     </div>
                   </div>
-                ))}
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Priority: Placed below direct customer offers
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {eligibleCommunityRequests.map((req) => {
+                    const totalBudgetNum = parseBudgetNumber(req.budget);
+                    const workersNeeded = Number(req.workersNeeded) || 1;
+                    const perWorkerPayout = Math.round(totalBudgetNum / workersNeeded);
+                    const currentAssigned = req.assignedWorkerIds || [];
+                    const hasJoined = currentAssigned.includes(currentWorker.id);
+                    const slotsLeft = Math.max(0, workersNeeded - currentAssigned.length);
+
+                    return (
+                      <div
+                        key={req.id}
+                        className={`bg-white rounded-3xl border-2 p-5 flex flex-col justify-between space-y-4 shadow-sm transition ${
+                          hasJoined
+                            ? "border-emerald-400 bg-emerald-50/20"
+                            : "border-slate-200 hover:border-blue-300"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                <span>RWA Collective</span>
+                              </span>
+                              <span className="text-xs text-slate-400 font-mono">#{req.id}</span>
+                              {hasJoined && (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>You Joined</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="text-base font-extrabold text-slate-900 mt-1">
+                              {req.title}
+                            </h4>
+                            <p className="text-xs font-semibold text-blue-900 flex items-center gap-1">
+                              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span>{req.societyName}</span>
+                            </p>
+                            <p className="text-xs text-slate-500 flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span>{req.location || "Bengaluru Society"}</span>
+                            </p>
+                            <p className="text-xs text-slate-600 mt-2 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              {req.description}
+                            </p>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Your Payout Share
+                            </span>
+                            <span className="text-lg font-black text-emerald-700 font-mono">
+                              ₹{perWorkerPayout.toLocaleString("en-IN")}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block">100% Retained</span>
+                            <span className="text-[10px] font-bold text-slate-500 block mt-1">
+                              Society Total: {req.budget}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Crew Slots & Schedule */}
+                        <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="font-semibold text-slate-700">Required Technicians:</span>
+                              <span className="font-bold text-slate-900">
+                                {currentAssigned.length} / {workersNeeded} Joined
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="font-medium">{req.dateScheduled || "Scheduled Soon"}</span>
+                            </div>
+                          </div>
+
+                          {req.cooperativeBonus && (
+                            <p className="text-[11px] text-emerald-800 bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-medium">
+                              ✨ {req.cooperativeBonus}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                          {hasJoined ? (
+                            <div className="w-full py-2.5 px-4 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-black flex items-center justify-center gap-2 h-11 border border-emerald-300">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                              <span>Joined Work Order (Spot Confirmed • ₹{perWorkerPayout.toLocaleString("en-IN")})</span>
+                            </div>
+                          ) : slotsLeft > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => joinCommunityRequest(req.id, currentWorker.id)}
+                              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>Accept & Join Work Order ({slotsLeft} slot{slotsLeft > 1 ? "s" : ""} left)</span>
+                            </button>
+                          ) : (
+                            <div className="w-full py-2.5 px-4 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold flex items-center justify-center gap-2 h-11">
+                              <span>Work Order Filled ({workersNeeded}/{workersNeeded} spots taken)</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Empty state if both customer offers and community requests are 0 */}
+            {pendingRequests.length === 0 && eligibleCommunityRequests.length === 0 && (
+              <div className="p-6 text-center bg-white rounded-3xl border border-slate-200 text-xs text-slate-500 space-y-1">
+                <p className="font-bold text-slate-700">No Pending Job Offers or Community Tasks</p>
+                <p className="text-slate-400">
+                  New direct customer requests and RWA bulk maintenance work orders in your trade ({currentWorker.serviceName}) will automatically appear here.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Active Work In-Flight */}
           <div className="space-y-3">
