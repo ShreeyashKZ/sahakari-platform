@@ -23,7 +23,7 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
       <section className="text-center max-w-4xl mx-auto space-y-6 px-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Zero-Profit Operating Model • Smart India Hackathon 2026</span>
+          <span>Zero-Profit Operating Model • Worker-Owned Cooperative</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight">
@@ -45,7 +45,7 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
               onSelectRole("customer");
               onStartDemo("dashboard");
             }}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer h-11"
           >
             <span>Launch Customer Experience</span>
             <ArrowRight className="w-4 h-4" />
@@ -56,9 +56,9 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
               onSelectRole("worker");
               onStartDemo("jobs");
             }}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer h-11"
           >
-            <span>Worker Hub (Imran Khan)</span>
+            <span>Worker Hub (Ramesh Kumar)</span>
           </button>
 
           <button
@@ -66,7 +66,7 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
               onSelectRole("admin");
               onStartDemo("dashboard");
             }}
-            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-extrabold text-sm border border-slate-300 shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-extrabold text-sm border border-slate-300 shadow-xs transition flex items-center justify-center gap-2 cursor-pointer h-11"
           >
             <span>Society RWA Portal</span>
           </button>
@@ -85,9 +85,9 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
             <span className="text-[10px] text-emerald-700 font-bold block mt-1">Direct Take-Home</span>
           </div>
           <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-            <p className="text-2xl font-black text-slate-900 font-mono">₹25</p>
+            <p className="text-2xl font-black text-slate-900 font-mono">₹20</p>
             <p className="text-xs text-slate-500 font-semibold mt-0.5">Flat At-Cost Fee</p>
-            <span className="text-[10px] text-slate-500 font-medium block mt-1">₹15 Welfare + ₹10 Servers</span>
+            <span className="text-[10px] text-slate-500 font-medium block mt-1">₹10 Welfare + ₹10 Servers</span>
           </div>
           <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
             <p className="text-2xl font-black text-teal-600 font-mono">~28%</p>
@@ -99,19 +99,19 @@ export const LandingPage = ({ onStartDemo, onSelectRole }) => {
         {/* Live Middleman Savings Preview Chips */}
         <div className="pt-4 max-w-2xl mx-auto flex items-center justify-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-semibold text-slate-500">Live Corporate Cut Saved Examples:</span>
-          <MiddlemanSavingsBubble amount={350} workerName="Imran (Plumber)" badgeText="Plumbing: ₹98 Saved for Worker" />
+          <MiddlemanSavingsBubble amount={350} workerName="Ramesh (Plumber)" badgeText="Plumbing: ₹98 Saved for Worker" />
           <MiddlemanSavingsBubble amount={550} workerName="Anita (Cleaner)" badgeText="Cleaning: ₹154 Saved for Worker" />
         </div>
       </section>
 
-      {/* PROBLEM vs SOLUTION MATRIX (Crucial for SIH 30-second judging pitch) */}
+      {/* PROBLEM vs SOLUTION MATRIX */}
       <section className="bg-slate-900 text-white rounded-3xl p-8 sm:p-12 max-w-6xl mx-auto shadow-2xl space-y-8">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            Addressing the "0% Commission" Reality • Built for Judicial & Economic Rigor
+            Addressing the "0% Commission" Reality • Built for Economic Rigor
           </span>
           <h2 className="text-2xl sm:text-3xl font-black mt-2">
-            Why Urban Company Takes 30% vs. Why Sahakari Charges ₹25
+            Why Corporate Aggregators Extract 30% vs. Why Sahakari Charges ₹20
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-2">
             Software does have operating costs (cloud servers, SMS/OTP gateways, UPI switches). The problem with corporate giants is not operating costs — it's <strong>venture capital extracting 25–30% predatory profit margins</strong>.

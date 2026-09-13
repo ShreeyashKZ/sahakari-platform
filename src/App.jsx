@@ -6,11 +6,10 @@ import { LandingPage } from "./pages/LandingPage";
 import { CustomerDashboard } from "./pages/CustomerDashboard";
 import { WorkerDashboard } from "./pages/WorkerDashboard";
 import { AdminDashboard } from "./pages/AdminDashboard";
-import { SkillSwapDashboard } from "./pages/SkillSwapDashboard";
-import { DemoStoryWalkthrough } from "./components/demo/DemoStoryWalkthrough";
 import { BulkRequestModal } from "./components/admin/BulkRequestModal";
 import { AuthGatewayModal } from "./components/auth/AuthGatewayModal";
 import { MasterLiveConsoleModal } from "./components/admin/MasterLiveConsoleModal";
+import { Zap } from "lucide-react";
 
 export function App() {
   const {
@@ -18,17 +17,17 @@ export function App() {
     setRole,
     isAuthOpen,
     setIsAuthOpen,
-    isMasterMode,
     isMasterConsoleOpen,
     setIsMasterConsoleOpen,
   } = useApp();
 
-  // Active top-level tab: 'dashboard' | 'bookings' | 'jobs' | 'earnings' | 'requests' | 'landing'
+  // Active top-level tab: 'dashboard' | 'bookings' | 'jobs' | 'earnings' | 'assembly' | 'bulletin' | 'landing'
   const [activeTab, setActiveTab] = useState("dashboard");
 
   // Sub-tabs inside Customer & Worker views
   const [customerSubTab, setCustomerSubTab] = useState("find"); // 'find' | 'bookings'
-  const [workerSubTab, setWorkerSubTab] = useState("jobs"); // 'jobs' | 'earnings' | 'community-bids'
+  const [workerSubTab, setWorkerSubTab] = useState("jobs"); // 'jobs' | 'earnings' | 'assembly'
+  const [adminSubTab, setAdminSubTab] = useState("overview"); // 'overview' | 'requests' | 'bulletin' | 'assembly'
 
   // Admin bulk request modal
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -37,15 +36,18 @@ export function App() {
   const handleNavTab = (tab) => {
     setActiveTab(tab);
     if (tab === "bookings") setCustomerSubTab("bookings");
-    if (tab === "quick-jobs") {
-      setRole("customer");
-      setCustomerSubTab("quick-jobs");
-    }
     if (tab === "jobs") setWorkerSubTab("jobs");
     if (tab === "earnings") setWorkerSubTab("earnings");
+    if (tab === "assembly") {
+      setWorkerSubTab("assembly");
+      setAdminSubTab("assembly");
+    }
+    if (tab === "bulletin") setAdminSubTab("bulletin");
+    if (tab === "requests") setAdminSubTab("requests");
     if (tab === "dashboard") {
       setCustomerSubTab("find");
       setWorkerSubTab("jobs");
+      setAdminSubTab("overview");
     }
   };
 
@@ -54,8 +56,8 @@ export function App() {
       {/* Top Navigation */}
       <Navbar activeTab={activeTab} setActiveTab={handleNavTab} />
 
-      {/* Main Role Content View */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Role Content View (with responsive padding for mobile bottom bar) */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-6">
         {activeTab === "landing" ? (
           <LandingPage
             onSelectRole={(newRole) => {
@@ -80,10 +82,10 @@ export function App() {
               />
             )}
 
-            {role === "skill_swap" && <SkillSwapDashboard />}
-
             {role === "admin" && (
               <AdminDashboard
+                activeSubTab={adminSubTab}
+                setActiveSubTab={setAdminSubTab}
                 onOpenNewRequestModal={() => setIsBulkModalOpen(true)}
               />
             )}
@@ -115,20 +117,19 @@ export function App() {
         type="button"
         onClick={() => setIsMasterConsoleOpen(true)}
         title="Open Master Live Console (Control any worker in real-time)"
-        className="fixed bottom-20 left-4 z-40 bg-gradient-to-r from-slate-900 to-emerald-950 text-white border border-emerald-500/60 hover:border-emerald-400 px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-black transition-all hover:scale-105 cursor-pointer backdrop-blur-md"
+        className="fixed bottom-16 sm:bottom-6 left-4 z-40 bg-gradient-to-r from-slate-900 to-emerald-950 text-white border border-emerald-500/60 hover:border-emerald-400 px-3.5 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-black transition-all hover:scale-105 cursor-pointer backdrop-blur-md h-11"
       >
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
         <span>⚡ Master Console</span>
-        <span className="text-[10px] bg-emerald-500/30 text-emerald-300 px-1.5 py-0.2 rounded font-mono">
+        <span className="text-[10px] bg-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded font-mono">
           ALL WORKERS
         </span>
       </button>
 
-      {/* 1-Click Interactive Hackathon Demo Assistant Widget */}
-      <DemoStoryWalkthrough onNavigateTab={handleNavTab} />
-
       {/* Footer */}
-      <Footer setActiveTab={handleNavTab} />
+      <div className="pb-16 md:pb-0">
+        <Footer setActiveTab={handleNavTab} />
+      </div>
     </div>
   );
 }

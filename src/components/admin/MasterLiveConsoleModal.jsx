@@ -243,18 +243,19 @@ export const MasterLiveConsoleModal = ({ isOpen, onClose }) => {
                         </div>
                         <p className="text-[10px] text-slate-400 truncate">{worker.serviceName}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {worker.isEshramVerified && (
+                          {worker.isPoliceVerified && (
                             <span className="text-[9px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.2 rounded font-semibold">
-                              e-Shram ✓
+                              PCC 🛡️
                             </span>
                           )}
-                          {worker.canBargain ? (
-                            <span className="text-[9px] bg-teal-900/60 text-teal-300 px-1.5 py-0.2 rounded">
-                              Bargainable
+                          {worker.isNsqfCertified && (
+                            <span className="text-[9px] bg-indigo-900/60 text-indigo-300 px-1.5 py-0.2 rounded font-semibold">
+                              NSQF 🎓
                             </span>
-                          ) : (
-                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded">
-                              Fixed
+                          )}
+                          {worker.isShareholder && (
+                            <span className="text-[9px] bg-amber-900/60 text-amber-300 px-1.5 py-0.2 rounded font-semibold">
+                              Co-owner 🏷️
                             </span>
                           )}
                           <span className="text-[9px] text-slate-500">

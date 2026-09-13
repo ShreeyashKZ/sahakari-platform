@@ -9,7 +9,9 @@ import {
   INITIAL_USERS,
   INITIAL_SKILL_SWAPS,
   INITIAL_QUICK_JOBS,
+  DEMOCRATIC_PROPOSALS,
 } from "../data/mockData";
+import CooperativeReceiptModal from "../components/common/CooperativeReceiptModal";
 
 const AppContext = createContext();
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -41,7 +43,7 @@ export const AppProvider = ({ children }) => {
   });
 
   const [currentWorkerId, setCurrentWorkerId] = useState(() => {
-    return localStorage.getItem("sahakari_worker_id") || "w-imran";
+    const saved = localStorage.getItem("sahakari_worker_id"); return (!saved || saved === "w-imran") ? "w-ramesh" : saved;
   });
 
   const [users, setUsers] = useState(() => {
@@ -91,7 +93,7 @@ export const AppProvider = ({ children }) => {
   const isMasterMode = Boolean(currentUser?.isMasterAccount || currentUser?.role === "master");
   const [isMasterConsoleOpen, setIsMasterConsoleOpen] = useState(false);
   const [masterActiveWorkerId, setMasterActiveWorkerId] = useState(() => {
-    return localStorage.getItem("sahakari_master_worker_id") || "w-imran";
+    const saved = localStorage.getItem("sahakari_master_worker_id"); return (!saved || saved === "w-imran") ? "w-ramesh" : saved;
   });
 
   const [bookings, setBookings] = useState(() => {
@@ -118,6 +120,205 @@ export const AppProvider = ({ children }) => {
     const saved = localStorage.getItem("sahakari_metrics");
     return saved ? JSON.parse(saved) : COOPERATIVE_METRICS;
   });
+
+
+  // Democratic Assembly Proposals
+  const [proposals, setProposals] = useState(() => {
+    const saved = localStorage.getItem("sahakari_proposals");
+    return saved ? JSON.parse(saved) : DEMOCRATIC_PROPOSALS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sahakari_proposals", JSON.stringify(proposals));
+  }, [proposals]);
+
+  const castVote = (proposalId, voteType) => {
+    setProposals((prev) =>
+      prev.map((p) => {
+        if (p.id === proposalId) {
+          const prevVote = p.userVoted;
+          let yesDiff = 0;
+          let noDiff = 0;
+          let abstainDiff = 0;
+
+          if (prevVote === "yes") yesDiff -= 1;
+          if (prevVote === "no") noDiff -= 1;
+          if (prevVote === "abstain") abstainDiff -= 1;
+
+          if (voteType === "yes") yesDiff += 1;
+          if (voteType === "no") noDiff += 1;
+          if (voteType === "abstain") abstainDiff += 1;
+
+          return {
+            ...p,
+            votesYes: Math.max(0, p.votesYes + yesDiff),
+            votesNo: Math.max(0, p.votesNo + noDiff),
+            votesAbstain: Math.max(0, p.votesAbstain + abstainDiff),
+            userVoted: voteType,
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  // Cooperative Member Share Capital Purchase
+  const purchaseMemberShare = (workerId, planType = "one_time") => {
+    setWorkers((prev) =>
+      prev.map((w) => {
+        if (w.id === workerId) {
+          return {
+            ...w,
+            isShareholder: true,
+            shareCount: (w.shareCount || 0) + 1,
+            shareType: "Full Voting Co-owner",
+            sharePlan: planType === "one_time" ? "Paid ₹100" : "Micro-retention ₹10/job",
+            shareBadge: "🏷️ Co-op Shareholder & Voting Member",
+          };
+        }
+        return w;
+      })
+    );
+    if (currentUser) {
+      const updated = {
+        ...currentUser,
+        isShareholder: true,
+        shareBadge: "🏷️ Co-op Shareholder & Voting Member",
+      };
+      setCurrentUser(updated);
+      if (currentUser.rememberMe) {
+        localStorage.setItem("sahakari_current_user", JSON.stringify(updated));
+      }
+    }
+    return true;
+  };
+
+  // Upgrade Diagnostic Inspection booking to Full Standard Repair
+  const upgradeBookingToFullRepair = (bookingId) => {
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (b.id === bookingId) {
+          const targetWorker = workers.find((w) => w.id === b.workerId);
+          const fullRate = b.standardPrice || targetWorker?.standardPrice || 400;
+          return {
+            ...b,
+            bookingType: "Full Standard Repair",
+            isDiagnostic: false,
+            serviceCharge: fullRate,
+            totalAmount: fullRate + (b.platformFee || 20),
+            workerPayout: fullRate,
+            upgradedAt: new Date().toISOString(),
+          };
+        }
+        return b;
+      })
+    );
+  };
+
+  // Housing Societies & RWA Context
+  const [societies, setSocieties] = useState(() => {
+    const saved = localStorage.getItem("sahakari_societies");
+    return saved
+      ? JSON.parse(saved)
+      : [
+          {
+            id: "soc-1",
+            name: "Shanti Vihar Apartments RWA",
+            slug: "shanti-vihar",
+            registrationNo: "BLR/RWA/2019/4821",
+            city: "Bengaluru",
+            pincode: "560038",
+            totalFlats: 160,
+            secretaryName: "Dr. Alok Verma",
+            secretaryContact: "+91 98450 77112",
+            inviteLink: "https://sahakari.org.in/join/rwa-shanti-vihar",
+          },
+          {
+            id: "soc-2",
+            name: "Palm Meadows Residents Association",
+            slug: "palm-meadows",
+            registrationNo: "BLR/RWA/2021/1190",
+            city: "Bengaluru",
+            pincode: "560066",
+            totalFlats: 240,
+            secretaryName: "Col. Suresh Nair",
+            secretaryContact: "+91 98220 33441",
+            inviteLink: "https://sahakari.org.in/join/rwa-palm-meadows",
+          },
+        ];
+  });
+
+  const [activeSocietyContext, setActiveSocietyContext] = useState(() => {
+    return localStorage.getItem("sahakari_active_society") || "shanti-vihar";
+  });
+
+  const registerHousingSociety = (socData) => {
+    const slug = (socData.name || "housing-society")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    const inviteLink = `https://sahakari.org.in/join/rwa-${slug}`;
+    const newSociety = {
+      id: `soc-${Date.now()}`,
+      slug,
+      inviteLink,
+      ...socData,
+    };
+    const updated = [newSociety, ...societies];
+    setSocieties(updated);
+    localStorage.setItem("sahakari_societies", JSON.stringify(updated));
+    setActiveSocietyContext(slug);
+    localStorage.setItem("sahakari_active_society", slug);
+    return newSociety;
+  };
+
+  // Cooperative Post-Service Receipt Modal State
+  const [receiptModalData, setReceiptModalData] = useState(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
+  const openReceiptModal = (receiptData) => {
+    setReceiptModalData(receiptData);
+    setIsReceiptOpen(true);
+  };
+
+  const closeReceiptModal = () => {
+    setIsReceiptOpen(false);
+    setReceiptModalData(null);
+  };
+
+  // Worker verification realignment (PCC, NSQF Level 4, optional e-Shram advisory)
+  const updateWorkerVerification = (workerId, { pccCertificate, nsqfCard, uanNumber }) => {
+    setWorkers((prev) =>
+      prev.map((w) => {
+        if (w.id === workerId) {
+          const isPolice = pccCertificate !== undefined ? Boolean(pccCertificate) : w.isPoliceVerified;
+          const isNsqf = nsqfCard !== undefined ? Boolean(nsqfCard) : w.isNsqfCertified;
+          const uan = uanNumber !== undefined ? uanNumber : (w.eshramNumber || "");
+
+          return {
+            ...w,
+            isPoliceVerified: isPolice,
+            isNsqfCertified: isNsqf,
+            eshramNumber: uan,
+            hasEshram: Boolean(uan && uan.length >= 10),
+            pccCertificate: pccCertificate || w.pccCertificate,
+            nsqfCard: nsqfCard || w.nsqfCard,
+            verificationStatus: {
+              ...w.verificationStatus,
+              label: isPolice && isNsqf
+                ? "🛡️ Police Verified • 🎓 NSQF Level 4"
+                : isPolice
+                  ? "🛡️ Police Cleared"
+                  : isNsqf
+                    ? "🎓 Skill India Certified"
+                    : "Cooperative Member",
+            },
+          };
+        }
+        return w;
+      })
+    );
+  };
 
   const [apiConnected, setApiConnected] = useState(false);
 
@@ -687,11 +888,12 @@ export const AppProvider = ({ children }) => {
       serviceName: worker.serviceName || serviceObj?.name || "Plumbing",
       baseRate,
       agreedPrice: baseRate,
-      canBargain: worker.canBargain !== false,
       emergencyAvailable: Boolean(worker.emergencyAvailable),
       etaMinutes: worker.etaMinutes || 15,
-      isEshramVerified: Boolean(worker.isEshramVerified),
-      attractionTags: worker.attractionTags || ["Can be bargained with"],
+      isPoliceVerified: Boolean(worker.isPoliceVerified),
+      isNsqfCertified: Boolean(worker.isNsqfCertified),
+      isShareholder: Boolean(worker.isShareholder),
+      attractionTags: worker.attractionTags || ["Cooperative Verified"],
       messages: [
         {
           id: "m-1",
@@ -1131,9 +1333,25 @@ export const AppProvider = ({ children }) => {
         submitReview,
         createCommunityRequest,
         resetDemoData,
+        proposals,
+        castVote,
+        purchaseMemberShare,
+        upgradeBookingToFullRepair,
+        societies,
+        activeSocietyContext,
+        setActiveSocietyContext,
+        registerHousingSociety,
+        openReceiptModal,
+        closeReceiptModal,
+        updateWorkerVerification,
       }}
     >
       {children}
+      <CooperativeReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={closeReceiptModal}
+        receiptData={receiptModalData}
+      />
     </AppContext.Provider>
   );
 };

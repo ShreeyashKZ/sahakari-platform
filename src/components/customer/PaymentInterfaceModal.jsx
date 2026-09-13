@@ -38,6 +38,7 @@ export const PaymentInterfaceModal = ({
     workerName = "Verified Worker",
     workerAvatar,
     serviceName = "Service",
+    bookingType = "Full Standard Repair",
     agreedRate = 350,
     baseRate = 400,
     etaMinutes = 15,
@@ -45,11 +46,10 @@ export const PaymentInterfaceModal = ({
 
   const totalAmount = Number(agreedRate) || 350;
   const originalRate = Number(baseRate) || totalAmount;
-  const savings = Math.max(0, originalRate - totalAmount);
 
   // Zero-Profit Operating Model Distribution Formula
-  const platformFee = 25; // Democratic At-Cost Cooperative Fee: ₹15 Welfare + ₹10 Servers/SMS
-  const workerPayout = Math.max(100, totalAmount - platformFee);
+  const platformFee = 20; // Democratic At-Cost Cooperative Fee: ₹10 Welfare + ₹10 Servers/SMS
+  const workerPayout = totalAmount; // 100% of Labour to Worker
   const corporateAppCommissionSaved = Math.round(totalAmount * 0.28); // 28% typical corporate app cut
 
   const handleAuthorizePayment = () => {
@@ -60,8 +60,10 @@ export const PaymentInterfaceModal = ({
       setTimeout(() => {
         const finalBookingData = {
           ...bookingDetails,
-          totalAmount,
-          workerPayout,
+          bookingType,
+          serviceCharge: totalAmount,
+          totalAmount: totalAmount + platformFee,
+          workerPayout: totalAmount,
           platformFee,
           paymentMethod,
           paymentStatus:
@@ -79,13 +81,13 @@ export const PaymentInterfaceModal = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-[95vw] sm:max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-auto max-h-[90vh] animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white p-5 sm:p-6 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -99,39 +101,28 @@ export const PaymentInterfaceModal = ({
             Authorize & Confirm Booking
           </h2>
           <p className="text-xs text-emerald-100/90 mt-0.5">
-            100% of labour earnings go directly to {workerName}. Only a flat ₹25 at-cost fee is charged for servers, SMS OTPs, and mutual welfare.
+            100% labour fee goes directly to {workerName}. Only a flat ₹20 democratic fee is charged for servers, SMS OTPs, and mutual welfare.
           </p>
 
-          {/* Agreed Rate Highlight Box */}
+          {/* Booking Plan Highlight Box */}
           <div className="mt-4 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {workerAvatar && (
                 <img
                   src={workerAvatar}
                   alt={workerName}
-                  className="w-10 h-10 rounded-xl object-cover border border-white/30"
+                  className="w-11 h-11 rounded-xl object-cover border border-white/30"
                 />
               )}
               <div>
-                <p className="text-xs text-emerald-200 font-medium">Bargained Deal with {workerName}</p>
-                <p className="text-sm font-extrabold text-white">{serviceName}</p>
+                <p className="text-xs text-emerald-200 font-semibold">{bookingType}</p>
+                <p className="text-sm font-extrabold text-white">{workerName} • {serviceName}</p>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="flex items-center gap-1.5 justify-end">
-                {savings > 0 && (
-                  <span className="text-xs text-slate-300 line-through">₹{originalRate}</span>
-                )}
-                <span className="text-xl font-black text-white">₹{totalAmount}</span>
-              </div>
-              {savings > 0 ? (
-                <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/30 px-2 py-0.5 rounded-full">
-                  You saved ₹{savings}
-                </span>
-              ) : (
-                <span className="text-[10px] text-emerald-300 font-bold">Standard Co-op Rate</span>
-              )}
+              <span className="text-2xl font-black text-white font-mono">₹{totalAmount}</span>
+              <span className="text-[10px] text-emerald-300 block font-bold">100% to Worker</span>
             </div>
           </div>
         </div>
