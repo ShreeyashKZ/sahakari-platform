@@ -45,8 +45,8 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
             <span>Cooperative Gig Services Platform for Households & Societies</span>
           </div>
           <div className="flex items-center gap-4 text-[11px]">
-            <span className="hidden md:inline-flex items-center gap-1 text-emerald-100">
-              <ShieldCheck className="w-3.5 h-3.5" /> 0% Predatory Commission • 100% Worker Owned
+            <span className="hidden md:inline-flex items-center gap-1 text-emerald-100 font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5" /> Zero-Profit Model • 100% Labour to Worker • Flat At-Cost Maintenance
             </span>
             <button
               onClick={resetDemoData}

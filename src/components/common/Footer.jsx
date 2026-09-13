@@ -26,7 +26,7 @@ export const Footer = ({ setActiveTab }) => {
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              India's first democratic, community-owned digital gig cooperative. Eliminating exploitative 25-30% platform commissions while guaranteeing household trust & safety.
+              India's first democratic, community-owned digital gig cooperative. Eliminating exploitative 25-30% VC margins through a Zero-Profit Operating Model: 100% labour retained by workers + flat at-cost maintenance.
             </p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/60 border border-emerald-800/60 rounded-lg text-emerald-400 text-xs">
               <ShieldCheck className="w-3.5 h-3.5" />
@@ -40,7 +40,7 @@ export const Footer = ({ setActiveTab }) => {
             <ul className="space-y-2 text-xs text-slate-400">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                <span>Zero Corporate Commission</span>
+                <span>Zero-Profit Model (0% VC Extraction)</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>

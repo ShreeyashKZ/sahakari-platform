@@ -76,13 +76,13 @@ export const WorkerEarningsSection = ({ worker }) => {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Co-op Commission Saved
+            Middleman Fees Saved
           </span>
           <p className="text-2xl font-black text-emerald-600 mt-2 font-mono">
-            ₹{Math.round(worker.earnings.allTime * 0.25).toLocaleString("en-IN")}
+            ₹{Math.round(worker.earnings.allTime * 0.28).toLocaleString("en-IN")}
           </p>
           <p className="text-[11px] text-slate-500 font-medium mt-1">
-            Saved vs 25% corporate app cuts
+            Extra earnings vs 28% corporate cuts
           </p>
         </div>
       </div>
@@ -147,9 +147,9 @@ export const WorkerEarningsSection = ({ worker }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
             <div className="bg-white/10 p-3.5 rounded-xl backdrop-blur-xs border border-white/10">
-              <p className="font-extrabold text-sm text-white">0% Platform Cut</p>
+              <p className="font-extrabold text-sm text-white">Zero-Profit Model</p>
               <p className="text-xs text-emerald-200 mt-1">
-                You keep 100% of the standard customer service fee.
+                100% labour earnings are yours. Flat at-cost ₹25 funds your medical tool pool & servers.
               </p>
             </div>
             <div className="bg-white/10 p-3.5 rounded-xl backdrop-blur-xs border border-white/10">

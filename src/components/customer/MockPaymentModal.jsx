@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Receipt
 } from "lucide-react";
+import { MiddlemanSavingsBubble } from "../common/MiddlemanSavingsBubble";
 
 export const MockPaymentModal = ({ isOpen, onClose, booking, onPaymentSuccess }) => {
   if (!isOpen || !booking) return null;
@@ -21,57 +22,68 @@ export const MockPaymentModal = ({ isOpen, onClose, booking, onPaymentSuccess })
       setProcessing(false);
       setIsSuccess(true);
       setTimeout(() => {
-        onPaymentSuccess(booking.id);
         setIsSuccess(false);
-        onClose();
-      }, 1200);
-    }, 1000);
+        onPaymentSuccess();
+      }, 1500);
+    }, 1200);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in fade-in duration-200">
+        
         {!isSuccess ? (
           <>
+            {/* Header */}
             <div className="text-center pb-4 border-b border-slate-100">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-3">
                 <Receipt className="w-6 h-6" />
               </div>
-              <h3 className="font-extrabold text-slate-900 text-lg">
-                Transparent Co-op Settlement
+              <h3 className="font-black text-slate-900 text-lg">
+                Zero-Profit Cooperative Payment
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Booking ID: <span className="font-mono font-bold text-slate-700">{booking.id}</span>
+                100% of Labour to {booking.workerName || "Worker"} • Flat At-Cost Maintenance
               </p>
             </div>
 
-            {/* Price Breakdown - Fair & Zero Middleman */}
-            <div className="my-5 bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
+            {/* Receipt Summary */}
+            <div className="my-5 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>Service Charge ({booking.serviceName}):</span>
-                <span className="font-bold text-slate-900">₹{booking.serviceCharge}</span>
+                <span>Labour Fare ({booking.serviceName || "Service"}):</span>
+                <span className="font-bold text-slate-900">₹{booking.serviceCharge || booking.workerPayout || 350}</span>
               </div>
               <div className="flex justify-between text-slate-600">
-                <span>Cooperative Platform Pool (5%):</span>
-                <span className="font-bold text-slate-900">₹{booking.platformFee}</span>
+                <span>Democratic At-Cost Maintenance:</span>
+                <span className="font-bold text-slate-900">₹{booking.platformFee || 25}</span>
               </div>
               <div className="pt-2 border-t border-slate-200 flex justify-between text-base font-extrabold text-slate-900">
                 <span>Total Amount:</span>
                 <span className="text-emerald-700 font-mono">₹{booking.totalAmount}</span>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-200/80">
+              <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-2">
                 <div className="flex justify-between items-center bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
                   <span className="text-emerald-800 font-bold text-xs flex items-center gap-1">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                    Direct Worker Payout:
+                    Direct Worker Take-Home:
                   </span>
                   <span className="text-emerald-900 font-extrabold font-mono text-sm">
-                    ₹{booking.workerPayout}
+                    ₹{booking.workerPayout || booking.totalAmount - (booking.platformFee || 25)}
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-                  * Unlike traditional apps that deduct 25-30%, Sahakari workers take home 100% of the service fare!
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500 font-medium">Middleman Cut Saved:</span>
+                  <MiddlemanSavingsBubble
+                    amount={booking.totalAmount || 350}
+                    workerName={booking.workerName}
+                    size="xs"
+                  />
+                </div>
+
+                <p className="text-[10px] text-slate-400 mt-1 text-center">
+                  * 0% corporate venture capital margin. Only flat at-cost servers & member welfare.
                 </p>
               </div>
             </div>

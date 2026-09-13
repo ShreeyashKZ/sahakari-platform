@@ -8,6 +8,7 @@ import {
   CheckCheck,
   AlertCircle
 } from "lucide-react";
+import { MiddlemanSavingsBubble } from "../common/MiddlemanSavingsBubble";
 
 export const JobRequestCard = ({ booking, onAccept, onReject, onStartService, onCompleteService }) => {
   const isPending = booking.status === "Requested";
@@ -18,34 +19,31 @@ export const JobRequestCard = ({ booking, onAccept, onReject, onStartService, on
   const isCancelled = booking.status === "Cancelled";
 
   return (
-    <div className={`rounded-2xl border p-5 shadow-xs transition ${
-      isCancelled ? "bg-rose-50/20 border-rose-200" : "bg-white border-slate-200 hover:border-slate-300"
+    <div className={`rounded-2xl p-4 border transition ${
+      isDone 
+        ? "bg-slate-50/80 border-slate-200" 
+        : isCancelled
+        ? "bg-rose-50/40 border-rose-200"
+        : "bg-white border-slate-200 shadow-sm"
     }`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-            {booking.id}
-          </span>
-          <span className="font-extrabold text-slate-900 text-sm">{booking.serviceName}</span>
-        </div>
-
-        {/* Current status tag */}
-        <span
-          className={`text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
-            isCancelled
-              ? "bg-rose-100 text-rose-800 border border-rose-300"
-              : isPending
-              ? "bg-amber-100 text-amber-800 animate-pulse"
-              : isAccepted
-              ? "bg-blue-100 text-blue-800"
-              : isOnWay
-              ? "bg-violet-100 text-violet-800"
-              : isInService
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-slate-100 text-slate-700"
-          }`}
-        >
-          {isCancelled ? "✕ Cancelled by Customer" : `● Status: ${booking.status}`}
+      {/* Header Info */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <span className="text-xs font-mono font-bold text-slate-500">
+          Order #{booking.id}
+        </span>
+        
+        {/* Status Badge */}
+        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+          isPending ? "bg-amber-100 text-amber-800" :
+          isAccepted ? "bg-blue-100 text-blue-800" :
+          isOnWay ? "bg-teal-100 text-teal-800 animate-pulse" :
+          isInService ? "bg-purple-100 text-purple-800" :
+          isCancelled ? "bg-rose-100 text-rose-800 font-black border border-rose-300" :
+          "bg-emerald-100 text-emerald-800"
+        }`}>
+          {isCancelled && <XCircle className="w-3 h-3 text-rose-600" />}
+          {isDone && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+          {isCancelled ? "✕ Cancelled by Customer" : booking.status}
         </span>
       </div>
 
@@ -73,18 +71,25 @@ export const JobRequestCard = ({ booking, onAccept, onReject, onStartService, on
       {/* Financial payout highlight for worker */}
       <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 flex items-center justify-between text-xs my-2">
         <div>
-          <span className="font-semibold text-emerald-800 block">Agreed Customer Rate:</span>
+          <span className="font-semibold text-emerald-800 block">Zero-Profit Take-Home:</span>
           <span className="text-[10px] text-slate-500">
-            {booking.totalAmount !== booking.workerPayout ? "Co-op Take-home (0% commission)" : "Standard rate"}
+            100% Labour Retained (₹25 flat democratic fee)
           </span>
         </div>
-        <div className="text-right">
-          <span className="font-mono font-black text-emerald-900 text-base">
-            ₹{booking.totalAmount || booking.workerPayout}
-          </span>
-          <span className="text-[10px] text-emerald-700 font-bold block">
-            {booking.etaMinutes || 12} mins away
-          </span>
+        <div className="text-right flex items-center gap-2">
+          <MiddlemanSavingsBubble
+            amount={booking.totalAmount || booking.workerPayout || 350}
+            workerName="you"
+            size="xs"
+          />
+          <div>
+            <span className="font-mono font-black text-emerald-900 text-base block">
+              ₹{booking.workerPayout || booking.totalAmount}
+            </span>
+            <span className="text-[10px] text-emerald-700 font-bold block">
+              {booking.etaMinutes || 12} mins away
+            </span>
+          </div>
         </div>
       </div>
 

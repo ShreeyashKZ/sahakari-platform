@@ -15,6 +15,7 @@ import {
   HeartHandshake,
   AlertCircle
 } from "lucide-react";
+import { MiddlemanSavingsBubble } from "../common/MiddlemanSavingsBubble";
 
 export const PaymentInterfaceModal = ({
   isOpen,
@@ -46,10 +47,10 @@ export const PaymentInterfaceModal = ({
   const originalRate = Number(baseRate) || totalAmount;
   const savings = Math.max(0, originalRate - totalAmount);
 
-  // Cooperative Distribution Formula
-  const platformFee = 25; // Cooperative Welfare & Tool Cover pool
+  // Zero-Profit Operating Model Distribution Formula
+  const platformFee = 25; // Democratic At-Cost Cooperative Fee: ₹15 Welfare + ₹10 Servers/SMS
   const workerPayout = Math.max(100, totalAmount - platformFee);
-  const corporateAppCommissionSaved = Math.round(originalRate * 0.25); // typical 25% take-rate
+  const corporateAppCommissionSaved = Math.round(totalAmount * 0.28); // 28% typical corporate app cut
 
   const handleAuthorizePayment = () => {
     setIsProcessing(true);
@@ -91,14 +92,14 @@ export const PaymentInterfaceModal = ({
 
           <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-2">
             <Lock className="w-3 h-3 text-emerald-400" />
-            <span>SAHAKARI ZERO-COMMISSION ESCROW</span>
+            <span>SAHAKARI ZERO-PROFIT COOPERATIVE ESCROW</span>
           </div>
 
           <h2 className="text-xl font-extrabold tracking-tight">
             Authorize & Confirm Booking
           </h2>
           <p className="text-xs text-emerald-100/90 mt-0.5">
-            Post-bargain transparent payment. 100% of fair fees go to the worker and community fund.
+            100% of labour earnings go directly to {workerName}. Only a flat ₹25 at-cost fee is charged for servers, SMS OTPs, and mutual welfare.
           </p>
 
           {/* Agreed Rate Highlight Box */}
@@ -138,34 +139,55 @@ export const PaymentInterfaceModal = ({
         {/* Content Body */}
         <div className="p-5 sm:p-6 space-y-5 flex-1 overflow-y-auto max-h-[60vh]">
 
-          {/* Transparent Cooperative Breakdown */}
-          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 space-y-2">
+          {/* Transparent Zero-Profit Cooperative Breakdown */}
+          <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 space-y-2.5">
             <div className="flex items-center justify-between text-xs font-bold text-slate-800">
               <span className="flex items-center gap-1.5">
                 <HeartHandshake className="w-4 h-4 text-emerald-700" />
-                <span>Fair Cooperative Breakdown</span>
+                <span>Zero-Profit At-Cost Receipt</span>
               </span>
-              <span className="text-emerald-700 font-extrabold">0% Corporate Cut</span>
+              <span className="text-emerald-700 font-extrabold bg-emerald-100/80 px-2 py-0.5 rounded-lg border border-emerald-300 text-[11px]">
+                0% VC Profit Margin
+              </span>
             </div>
 
             <div className="space-y-1.5 text-xs pt-1 border-t border-emerald-200/50">
               <div className="flex items-center justify-between text-slate-700">
                 <span className="flex items-center gap-1">
-                  <span>Direct Worker Payout</span>
-                  <span className="text-[10px] text-slate-500">(92%)</span>
+                  <span>Direct Worker Labour Take-Home</span>
+                  <span className="text-[10px] text-emerald-700 font-bold">(100% Labour)</span>
                 </span>
                 <span className="font-extrabold text-slate-900">₹{workerPayout}</span>
               </div>
+              
               <div className="flex items-center justify-between text-slate-700">
-                <span className="flex items-center gap-1">
-                  <span>Welfare & Tool Insurance Pool</span>
-                  <span className="text-[10px] text-slate-500">(8%)</span>
-                </span>
+                <div>
+                  <span className="flex items-center gap-1 font-medium">
+                    <span>Flat Democratic At-Cost Fee</span>
+                    <span className="text-[10px] text-slate-500">(Members Voted)</span>
+                  </span>
+                  <p className="text-[10px] text-slate-500 pl-1">
+                    • ₹15 Member Emergency Medical Pool + ₹10 AWS Cloud, SMS & UPI
+                  </p>
+                </div>
                 <span className="font-bold text-slate-800">₹{platformFee}</span>
               </div>
-              <div className="flex items-center justify-between text-emerald-800 font-medium text-[11px] pt-1">
-                <span>Middleman Commission Saved:</span>
-                <span className="font-bold text-emerald-700">~₹{corporateAppCommissionSaved} saved</span>
+
+              <div className="flex items-center justify-between text-slate-500 text-[11px] pt-0.5">
+                <span>Corporate Profit & VC Shareholder Margins:</span>
+                <span className="font-mono font-bold text-slate-400 line-through">₹0 (0%)</span>
+              </div>
+
+              {/* Middleman Savings Info Bubble */}
+              <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between">
+                <span className="text-[11px] font-bold text-emerald-900">
+                  Extra Money Kept by Worker:
+                </span>
+                <MiddlemanSavingsBubble
+                  amount={totalAmount}
+                  workerName={workerName}
+                  size="sm"
+                />
               </div>
             </div>
           </div>

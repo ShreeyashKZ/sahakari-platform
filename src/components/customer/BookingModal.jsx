@@ -9,6 +9,7 @@ import {
   Info,
   CheckCircle2
 } from "lucide-react";
+import { MiddlemanSavingsBubble } from "../common/MiddlemanSavingsBubble";
 
 export const BookingModal = ({ isOpen, onClose, worker, onConfirmBooking }) => {
   if (!isOpen || !worker) return null;
@@ -23,7 +24,7 @@ export const BookingModal = ({ isOpen, onClose, worker, onConfirmBooking }) => {
   );
 
   const serviceCharge = worker.hourlyRate || 450;
-  const platformFee = 25; // Transparent cooperative fee
+  const platformFee = 25; // Transparent at-cost democratic fee
   const total = serviceCharge + platformFee;
 
   const handleSubmit = (e) => {
@@ -137,17 +138,23 @@ export const BookingModal = ({ isOpen, onClose, worker, onConfirmBooking }) => {
             />
           </div>
 
-          {/* Transparent Cooperative Pricing Breakdown */}
+          {/* Transparent Zero-Profit Pricing Breakdown */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
             <div className="flex items-center justify-between font-medium text-slate-600">
-              <span>Standard Service Fare:</span>
-              <span className="font-semibold text-slate-900">₹{serviceCharge}</span>
+              <span>Standard Labour Fare (100% to Worker):</span>
+              <span className="font-extrabold text-slate-900">₹{serviceCharge}</span>
             </div>
+            
             <div className="flex items-center justify-between font-medium text-slate-600">
-              <span className="flex items-center gap-1">
-                Cooperative Platform & Welfare Pool:
-                <Info className="w-3 h-3 text-slate-400" />
-              </span>
+              <div>
+                <span className="flex items-center gap-1">
+                  At-Cost Maintenance & Welfare Pool:
+                  <Info className="w-3 h-3 text-slate-400" />
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  ₹15 Member Emergency Pool + ₹10 Servers & SMS
+                </span>
+              </div>
               <span className="font-semibold text-slate-900">₹{platformFee}</span>
             </div>
 
@@ -156,11 +163,14 @@ export const BookingModal = ({ isOpen, onClose, worker, onConfirmBooking }) => {
               <span className="text-emerald-700 font-mono text-base">₹{total}</span>
             </div>
 
-            <div className="mt-2 bg-emerald-100/60 p-2.5 rounded-xl text-[11px] text-emerald-800 font-medium flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>
-                <strong>100% Transparent:</strong> Worker receives the full ₹{serviceCharge} directly. Zero middleman cuts!
-              </span>
+            <div className="mt-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-[11px] text-emerald-900 font-medium flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Zero-Profit Model:</strong> 100% labour goes to {worker.name}.
+                </span>
+              </div>
+              <MiddlemanSavingsBubble amount={serviceCharge} workerName={worker.name} size="xs" />
             </div>
           </div>
 

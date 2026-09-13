@@ -34,6 +34,7 @@ import { WorkerVerificationModal } from "../components/worker/WorkerVerification
 import { QuickJobsSection } from "../components/customer/QuickJobsSection";
 import { PaymentInterfaceModal } from "../components/customer/PaymentInterfaceModal";
 import { CancelBookingModal } from "../components/customer/CancelBookingModal";
+import { MiddlemanSavingsBubble } from "../components/common/MiddlemanSavingsBubble";
 
 export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   const {
@@ -514,6 +515,13 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
                             ⚡ {etaMins} mins away
                           </span>
+
+                          {/* Zero-Profit Middleman Savings Bubble */}
+                          <MiddlemanSavingsBubble
+                            amount={worker.hourlyRate || 350}
+                            workerName={worker.name}
+                            size="xs"
+                          />
                         </div>
                       </div>
 
@@ -788,6 +796,15 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                         <span className="font-medium text-slate-700">{activeBooking.address || "Your Address"}</span>
                       </div>
 
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-500 text-[11px]">Middleman Cut Saved:</span>
+                        <MiddlemanSavingsBubble
+                          amount={activeBooking.totalAmount || 380}
+                          workerName={activeBooking.workerName}
+                          size="xs"
+                        />
+                      </div>
+
                       {/* Payment Button if not paid and not cancelled */}
                       {activeBooking.status !== "Cancelled" && activeBooking.paymentStatus !== "Paid" && (
                         <button
@@ -886,10 +903,16 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                           />
                           <div>
                             <p className="text-xs font-bold text-slate-800">{b.workerName}</p>
-                            <p className="text-[11px] text-slate-500">
-                              Payment:{" "}
-                              <span className="font-semibold">{b.paymentStatus || "Completed"}</span>
-                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <p className="text-[11px] text-slate-500">
+                                Payment: <span className="font-semibold">{b.paymentStatus || "Completed"}</span>
+                              </p>
+                              <MiddlemanSavingsBubble
+                                amount={b.totalAmount || 350}
+                                workerName={b.workerName}
+                                size="xs"
+                              />
+                            </div>
                           </div>
                         </div>
 

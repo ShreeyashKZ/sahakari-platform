@@ -69,7 +69,7 @@ export const DemoStoryWalkthrough = ({ onNavigateTab }) => {
       title: "Switch to Worker: Imran Khan receives Job",
       roleToSet: "worker",
       tabToSet: "jobs",
-      description: "Imran sees the job card with direct take-home earnings of ₹450 (0% corporate commission cut).",
+      description: "Imran sees the job card with direct take-home earnings of ₹450 under the Zero-Profit Operating Model (100% labour retained + ₹25 at-cost fee).",
       actionLabel: "Step 4: Switch to Worker & Accept Job",
       onExecute: () => {
         setRole("worker");
@@ -114,7 +114,7 @@ export const DemoStoryWalkthrough = ({ onNavigateTab }) => {
       title: "Customer Mock Payment Settlement",
       roleToSet: "customer",
       tabToSet: "bookings",
-      description: "Customer reviews transparent receipt: ₹450 to worker + ₹25 to community welfare fund.",
+      description: "Customer reviews transparent zero-profit receipt: 100% labour to worker + flat ₹25 for member welfare and at-cost servers.",
       actionLabel: "Step 7: Customer Disburses Payout",
       onExecute: () => {
         setRole("customer");

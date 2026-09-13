@@ -355,7 +355,7 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                     (Base Rate: ₹{activeChatSession.baseRate})
                   </span>
                   <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    Take-home: ₹{Math.max(100, activeChatSession.proposedPrice - 25)}
+                    Zero-Profit Payout: ₹{Math.max(100, activeChatSession.proposedPrice - 25)} (₹25 at-cost pool)
                   </span>
                 </div>
               </div>

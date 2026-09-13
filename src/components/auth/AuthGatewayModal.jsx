@@ -319,7 +319,7 @@ export const AuthGatewayModal = ({ isOpen, onClose, defaultRole = "customer" }) 
                 </span>
               </div>
               <p className="text-xs text-emerald-100 mt-0.5">
-                0% Commission Gig Collective & Community Skill Barter
+                Zero-Profit Gig Collective • 100% Labour Retained by Worker
               </p>
             </div>
           </div>
