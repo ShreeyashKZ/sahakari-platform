@@ -137,6 +137,17 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
                     Job Queue
                   </button>
                   <button
+                    onClick={() => setActiveTab("collectives")}
+                    className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                      activeTab === "collectives"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-blue-800 hover:bg-blue-50"
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>RWA Collectives</span>
+                  </button>
+                  <button
                     onClick={() => setActiveTab("earnings")}
                     className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
                       activeTab === "earnings"
@@ -359,6 +370,15 @@ export const Navbar = ({ activeTab, setActiveTab }) => {
             >
               <Layers className="w-5 h-5 mb-0.5" />
               <span>Queue</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("collectives")}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-semibold transition min-h-[44px] min-w-[56px] ${
+                activeTab === "collectives" ? "text-blue-700 bg-blue-50 font-bold" : "text-slate-500"
+              }`}
+            >
+              <Building2 className="w-5 h-5 mb-0.5" />
+              <span>Collectives</span>
             </button>
             <button
               onClick={() => setActiveTab("assembly")}

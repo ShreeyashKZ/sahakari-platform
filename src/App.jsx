@@ -26,7 +26,7 @@ export function App() {
 
   // Sub-tabs inside Customer & Worker views
   const [customerSubTab, setCustomerSubTab] = useState("find"); // 'find' | 'bookings'
-  const [workerSubTab, setWorkerSubTab] = useState("jobs"); // 'jobs' | 'earnings' | 'assembly'
+  const [workerSubTab, setWorkerSubTab] = useState("jobs"); // 'jobs' | 'collectives' | 'earnings' | 'assembly'
   const [adminSubTab, setAdminSubTab] = useState("overview"); // 'overview' | 'requests' | 'bulletin'
 
   // Admin bulk request modal
@@ -37,6 +37,7 @@ export function App() {
     setActiveTab(tab);
     if (tab === "bookings") setCustomerSubTab("bookings");
     if (tab === "jobs") setWorkerSubTab("jobs");
+    if (tab === "collectives") setWorkerSubTab("collectives");
     if (tab === "earnings") setWorkerSubTab("earnings");
     if (tab === "assembly") {
       setWorkerSubTab("assembly");

@@ -585,9 +585,26 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         >
           <Briefcase className="w-4 h-4" />
           <span>Job Queue & Offers</span>
-          {totalIncomingOffersCount > 0 && (
+          {pendingRequests.length > 0 && (
             <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-black">
-              {totalIncomingOffersCount}
+              {pendingRequests.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab("collectives")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer h-11 ${
+            activeSubTab === "collectives"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>RWA Collectives</span>
+          {eligibleCommunityRequests.length > 0 && (
+            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] flex items-center justify-center font-black">
+              {eligibleCommunityRequests.length}
             </span>
           )}
         </button>
@@ -621,248 +638,104 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
       {activeSubTab === "jobs" && (
         <div className="space-y-6">
           
-          {/* AVAILABLE JOB OFFERS SECTION */}
-          {/* Rule: Direct Customer Job Offers MUST stay on top. RWA Community Collective Orders appear at last/bottom. */}
-          <div className="space-y-4">
-            
-            {/* 1. DIRECT CUSTOMER JOB OFFERS (PRIORITY 1: ON TOP) */}
-            {pendingRequests.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-                    <span>Direct Customer Job Offers ({pendingRequests.length})</span>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                      Priority 1 • Direct Booking
-                    </span>
-                  </h3>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    ⚡ Live Direct Offer
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pendingRequests.map((b) => (
-                    <div
-                      key={b.id}
-                      className="bg-white rounded-3xl border-2 border-emerald-500 shadow-lg p-5 flex flex-col justify-between space-y-3 relative overflow-hidden animate-in fade-in"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider">
-                              Direct Offer
-                            </span>
-                            <span className="text-xs text-slate-400 font-mono">#{b.id}</span>
-                          </div>
-                          <h4 className="text-base font-extrabold text-slate-900 mt-1">
-                            {b.customerName || "Customer"}
-                          </h4>
-                          <p className="text-xs text-slate-500">{b.serviceName}</p>
-                          <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{b.address || "Society Locality"}</span>
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                            Worker Payout
-                          </span>
-                          <span className="text-lg font-black text-emerald-700 font-mono">
-                            ₹{b.workerPayout || b.serviceCharge}
-                          </span>
-                          <span className="text-[10px] text-slate-400 block">100% Retained</span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => acceptBookingOffer(b.id)}
-                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>Accept Offer</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowWorkerChatModal(true)}
-                          className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer h-11 flex items-center gap-1"
-                          title="Chat with customer before accepting"
-                        >
-                          <MessageCircle className="w-4 h-4 text-emerald-700" />
-                          <span className="hidden sm:inline">Chat</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => declineBookingOffer(b.id)}
-                          className="py-2.5 px-3 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer h-11"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* DIRECT CUSTOMER JOB OFFERS */}
+          {pendingRequests.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                  <span>Direct Customer Job Offers ({pendingRequests.length})</span>
+                </h3>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  ⚡ Live Direct Customer Offers
+                </span>
               </div>
-            )}
 
-            {/* 2. RWA SOCIETY BULK & COLLECTIVE MAINTENANCE TASKS (PRIORITY 2: AT LAST / BOTTOM) */}
-            {eligibleCommunityRequests.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-slate-200/80 pt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                      <Building2 className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-extrabold text-sm text-slate-900">
-                          RWA Society Collective & Bulk Maintenance Tasks ({eligibleCommunityRequests.length})
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pendingRequests.map((b) => (
+                  <div
+                    key={b.id}
+                    className="bg-white rounded-3xl border-2 border-emerald-500 shadow-lg p-5 flex flex-col justify-between space-y-3 relative overflow-hidden animate-in fade-in"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-black uppercase tracking-wider">
+                            Direct Offer
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">#{b.id}</span>
+                        </div>
+                        <h4 className="text-base font-extrabold text-slate-900 mt-1">
+                          {b.customerName || "Customer"}
                         </h4>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                          Community Work Orders
-                        </span>
+                        <p className="text-xs text-slate-500">{b.serviceName}</p>
+                        <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{b.address || "Society Locality"}</span>
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500">
-                        Collective maintenance tasks published by RWAs & Housing Societies for {currentWorker.serviceName || "your trade"}.
-                      </p>
+
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                          Worker Payout
+                        </span>
+                        <span className="text-lg font-black text-emerald-700 font-mono">
+                          ₹{b.workerPayout || b.serviceCharge}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">100% Retained</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => acceptBookingOffer(b.id)}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Accept Offer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowWorkerChatModal(true)}
+                        className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer h-11 flex items-center gap-1"
+                        title="Chat with customer before accepting"
+                      >
+                        <MessageCircle className="w-4 h-4 text-emerald-700" />
+                        <span className="hidden sm:inline">Chat</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => declineBookingOffer(b.id)}
+                        className="py-2.5 px-3 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer h-11"
+                      >
+                        Decline
+                      </button>
                     </div>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    Priority: Placed below direct customer offers
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {eligibleCommunityRequests.map((req) => {
-                    const totalBudgetNum = parseBudgetNumber(req.budget);
-                    const workersNeeded = Number(req.workersNeeded) || 1;
-                    const perWorkerPayout = Math.round(totalBudgetNum / workersNeeded);
-                    const currentAssigned = req.assignedWorkerIds || [];
-                    const hasJoined = currentAssigned.includes(currentWorker.id);
-                    const slotsLeft = Math.max(0, workersNeeded - currentAssigned.length);
-
-                    return (
-                      <div
-                        key={req.id}
-                        className={`bg-white rounded-3xl border-2 p-5 flex flex-col justify-between space-y-4 shadow-sm transition ${
-                          hasJoined
-                            ? "border-emerald-400 bg-emerald-50/20"
-                            : "border-slate-200 hover:border-blue-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                                <Building2 className="w-3 h-3" />
-                                <span>RWA Collective</span>
-                              </span>
-                              <span className="text-xs text-slate-400 font-mono">#{req.id}</span>
-                              {hasJoined && (
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>You Joined</span>
-                                </span>
-                              )}
-                            </div>
-
-                            <h4 className="text-base font-extrabold text-slate-900 mt-1">
-                              {req.title}
-                            </h4>
-                            <p className="text-xs font-semibold text-blue-900 flex items-center gap-1">
-                              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                              <span>{req.societyName}</span>
-                            </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span>{req.location || "Bengaluru Society"}</span>
-                            </p>
-                            <p className="text-xs text-slate-600 mt-2 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                              {req.description}
-                            </p>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                              Your Payout Share
-                            </span>
-                            <span className="text-lg font-black text-emerald-700 font-mono">
-                              ₹{perWorkerPayout.toLocaleString("en-IN")}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block">100% Retained</span>
-                            <span className="text-[10px] font-bold text-slate-500 block mt-1">
-                              Society Total: {req.budget}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Crew Slots & Schedule */}
-                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-3.5 h-3.5 text-slate-500" />
-                              <span className="font-semibold text-slate-700">Required Technicians:</span>
-                              <span className="font-bold text-slate-900">
-                                {currentAssigned.length} / {workersNeeded} Joined
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-slate-600">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="font-medium">{req.dateScheduled || "Scheduled Soon"}</span>
-                            </div>
-                          </div>
-
-                          {req.cooperativeBonus && (
-                            <p className="text-[11px] text-emerald-800 bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-medium">
-                              ✨ {req.cooperativeBonus}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                          {hasJoined ? (
-                            <div className="w-full py-2.5 px-4 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-black flex items-center justify-center gap-2 h-11 border border-emerald-300">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                              <span>Joined Work Order (Spot Confirmed • ₹{perWorkerPayout.toLocaleString("en-IN")})</span>
-                            </div>
-                          ) : slotsLeft > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => joinCommunityRequest(req.id, currentWorker.id)}
-                              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
-                            >
-                              <Check className="w-4 h-4" />
-                              <span>Accept & Join Work Order ({slotsLeft} slot{slotsLeft > 1 ? "s" : ""} left)</span>
-                            </button>
-                          ) : (
-                            <div className="w-full py-2.5 px-4 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold flex items-center justify-center gap-2 h-11">
-                              <span>Work Order Filled ({workersNeeded}/{workersNeeded} spots taken)</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                ))}
               </div>
-            )}
-
-            {/* Empty state if both customer offers and community requests are 0 */}
-            {pendingRequests.length === 0 && eligibleCommunityRequests.length === 0 && (
-              <div className="p-6 text-center bg-white rounded-3xl border border-slate-200 text-xs text-slate-500 space-y-1">
-                <p className="font-bold text-slate-700">No Pending Job Offers or Community Tasks</p>
-                <p className="text-slate-400">
-                  New direct customer requests and RWA bulk maintenance work orders in your trade ({currentWorker.serviceName}) will automatically appear here.
-                </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>No direct customer job offers pending right now. New customer bookings will appear here in real time.</span>
               </div>
-            )}
-          </div>
+              {eligibleCommunityRequests.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab("collectives")}
+                  className="text-xs font-bold text-blue-700 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>View {eligibleCommunityRequests.length} RWA Collectives →</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Active Work In-Flight */}
           <div className="space-y-3">
@@ -917,7 +790,187 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         </div>
       )}
 
-      {/* SUBTAB VIEW 2: EARNINGS & LEDGER */}
+      {/* SUBTAB VIEW 2: RWA COLLECTIVES & BULK MAINTENANCE TASKS */}
+      {activeSubTab === "collectives" && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/30 border border-blue-400/40 text-blue-300 flex items-center justify-center font-bold text-xl shrink-0">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-black text-white">
+                      RWA Society Bulk & Collective Maintenance Tasks
+                    </h3>
+                    <span className="text-[10px] font-bold bg-blue-500/40 text-blue-200 px-2.5 py-0.5 rounded-full border border-blue-400/30">
+                      Cooperative Work Orders
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Bulk maintenance orders posted by Housing Societies & Apartment RWAs for <strong>{currentWorker.serviceName || "your trade"}</strong>. Join collective crews with fellow cooperative technicians — 100% direct labour payout retained, zero corporate take-rate.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 text-center sm:text-right shrink-0">
+                <span className="text-[10px] uppercase font-bold text-blue-200 block">
+                  Eligible Tasks
+                </span>
+                <span className="text-2xl font-black text-white font-mono">
+                  {eligibleCommunityRequests.length}
+                </span>
+                <span className="text-[10px] text-blue-300 block">Open for {currentWorker.serviceName}</span>
+              </div>
+            </div>
+
+            {/* Micro Highlights */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-white/10 text-xs text-blue-100">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Direct Society Payout: 100% Retained</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span>Cooperative Welfare Bonus Included</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Transparent Crew Slots & Schedule</span>
+              </div>
+            </div>
+          </div>
+
+          {/* List of Tasks */}
+          {eligibleCommunityRequests.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-xs text-slate-500 space-y-2">
+              <Building2 className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="font-bold text-slate-700 text-sm">No Open RWA Bulk Tasks for {currentWorker.serviceName}</p>
+              <p className="text-slate-400 max-w-md mx-auto">
+                Housing societies publish collective maintenance requests periodically. When an RWA posts a task matching your trade, it will immediately appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {eligibleCommunityRequests.map((req) => {
+                const totalBudgetNum = parseBudgetNumber(req.budget);
+                const workersNeeded = Number(req.workersNeeded) || 1;
+                const perWorkerPayout = Math.round(totalBudgetNum / workersNeeded);
+                const currentAssigned = req.assignedWorkerIds || [];
+                const hasJoined = currentAssigned.includes(currentWorker.id);
+                const slotsLeft = Math.max(0, workersNeeded - currentAssigned.length);
+
+                return (
+                  <div
+                    key={req.id}
+                    className={`bg-white rounded-3xl border-2 p-5 flex flex-col justify-between space-y-4 shadow-sm transition ${
+                      hasJoined
+                        ? "border-emerald-400 bg-emerald-50/20"
+                        : "border-slate-200 hover:border-blue-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                            <Building2 className="w-3 h-3" />
+                            <span>RWA Collective</span>
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono">#{req.id}</span>
+                          {hasJoined && (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>You Joined</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-base font-extrabold text-slate-900 mt-1">
+                          {req.title}
+                        </h4>
+                        <p className="text-xs font-semibold text-blue-900 flex items-center gap-1">
+                          <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>{req.societyName}</span>
+                        </p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{req.location || "Bengaluru Society"}</span>
+                        </p>
+                        <p className="text-xs text-slate-600 mt-2 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          {req.description}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                          Your Payout Share
+                        </span>
+                        <span className="text-lg font-black text-emerald-700 font-mono">
+                          ₹{perWorkerPayout.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">100% Retained</span>
+                        <span className="text-[10px] font-bold text-slate-500 block mt-1">
+                          Society Total: {req.budget}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Crew Slots & Schedule */}
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="font-semibold text-slate-700">Required Technicians:</span>
+                          <span className="font-bold text-slate-900">
+                            {currentAssigned.length} / {workersNeeded} Joined
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-medium">{req.dateScheduled || "Scheduled Soon"}</span>
+                        </div>
+                      </div>
+
+                      {req.cooperativeBonus && (
+                        <p className="text-[11px] text-emerald-800 bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200/60 font-medium">
+                          ✨ {req.cooperativeBonus}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                      {hasJoined ? (
+                        <div className="w-full py-2.5 px-4 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-black flex items-center justify-center gap-2 h-11 border border-emerald-300">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                          <span>Joined Work Order (Spot Confirmed • ₹{perWorkerPayout.toLocaleString("en-IN")})</span>
+                        </div>
+                      ) : slotsLeft > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => joinCommunityRequest(req.id, currentWorker.id)}
+                          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition cursor-pointer h-11 flex items-center justify-center gap-1.5"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>Accept & Join Work Order ({slotsLeft} slot{slotsLeft > 1 ? "s" : ""} left)</span>
+                        </button>
+                      ) : (
+                        <div className="w-full py-2.5 px-4 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold flex items-center justify-center gap-2 h-11">
+                          <span>Work Order Filled ({workersNeeded}/{workersNeeded} spots taken)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUBTAB VIEW 3: EARNINGS & LEDGER */}
       {activeSubTab === "earnings" && (
         <WorkerEarningsSection worker={currentWorker} bookings={workerBookings} />
       )}
