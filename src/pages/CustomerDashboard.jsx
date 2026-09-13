@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Wrench,
   Zap,
@@ -32,7 +32,7 @@ import {
 import { useApp } from "../context/AppContext";
 import { MockPaymentModal } from "../components/customer/MockPaymentModal";
 import { ReviewModal } from "../components/customer/ReviewModal";
-import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
+import { WorkerBioModal } from "../components/customer/WorkerBioModal";
 import { PaymentInterfaceModal } from "../components/customer/PaymentInterfaceModal";
 import { CancelBookingModal } from "../components/customer/CancelBookingModal";
 import { PreBookingChatModal } from "../components/customer/PreBookingChatModal";
@@ -86,6 +86,16 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
 
   // Toast / upgrade feedback
   const [upgradeNotification, setUpgradeNotification] = useState(null);
+
+  // Automatically trigger ReviewModal when a booking is completed & paid on worker's end
+  useEffect(() => {
+    const unratedPaid = bookings.find(
+      (b) => b.status === "Completed" && b.paymentStatus === "Paid" && !b.rating
+    );
+    if (unratedPaid && (!reviewBooking || reviewBooking.id !== unratedPaid.id)) {
+      setReviewBooking(unratedPaid);
+    }
+  }, [bookings, reviewBooking]);
 
   const iconMap = {
     Wrench,
@@ -793,24 +803,90 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                     </button>
                   </div>
                 </div>
+              ) : activeBooking.status === "Requested" ? (
+                /* LOADING / WAITING FOR WORKER ACCEPTANCE STATE */
+                <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-10 text-center space-y-6 animate-in fade-in duration-300">
+                  {/* Animated Pulsing Cooperative Loader */}
+                  <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
+                    <div className="absolute inset-2 rounded-full bg-emerald-500/30 animate-pulse"></div>
+                    <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-700 flex items-center justify-center shadow-lg text-white">
+                      <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: "3s" }} />
+                    </div>
+                  </div>
+
+                  <div className="max-w-md mx-auto space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-xs font-bold">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                      <span>Awaiting Acceptance from {activeBooking.workerName}</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                      Booking Request Dispatched
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Your offer has been submitted to <strong>{activeBooking.workerName}</strong>. 
+                      Please wait while the worker reviews and accepts the job offer. 
+                      Your booking will be confirmed immediately once accepted.
+                    </p>
+                  </div>
+
+                  {/* Worker Summary Preview */}
+                  <div className="max-w-lg mx-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between text-left gap-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={activeBooking.workerAvatar || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80"}
+                        alt={activeBooking.workerName}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                      />
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900">{activeBooking.workerName}</h4>
+                        <p className="text-xs text-slate-500">{activeBooking.serviceCategory || activeBooking.serviceName} • {activeBooking.bookingType}</p>
+                        <p className="text-[11px] text-emerald-700 font-bold mt-0.5">Offered Labour: ₹{activeBooking.serviceCharge} (100% Retained)</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Offer Status</span>
+                      <span className="text-xs font-black text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg">
+                        Waiting...
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Cancel Option */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setCancellingBooking(activeBooking)}
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                    >
+                      Cancel Offer
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
                   
                   {/* Status Banner */}
-                  <div className="bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800 text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className={`text-white p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    activeBooking.status === "Service Started"
+                      ? "bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900"
+                      : "bg-gradient-to-r from-emerald-600 via-teal-700 to-emerald-800"
+                  }`}>
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-xl">
-                        ⏱️
+                        {activeBooking.status === "Service Started" ? "🛠️" : "✓"}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-                            {activeBooking.status}
+                          <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full">
+                            {activeBooking.status === "Service Started" ? "Service In Progress" : "Booking Confirmed ✓"}
                           </span>
                           <span className="text-xs text-emerald-100 font-mono">ID: {activeBooking.id}</span>
                         </div>
                         <h2 className="text-xl sm:text-2xl font-black mt-0.5">
-                          {activeBooking.workerName} is {activeBooking.etaMinutes || 12} Mins Away
+                          {activeBooking.status === "Service Started"
+                            ? `${activeBooking.workerName} is Servicing Your Request`
+                            : `${activeBooking.workerName} is ${activeBooking.etaMinutes || 12} Mins Away`}
                         </h2>
                         <span className="text-xs text-emerald-100 font-semibold block mt-0.5">
                           Tier: {activeBooking.bookingType || (activeBooking.isDiagnostic ? "Diagnostic Inspection" : "Full Standard Repair")}
@@ -818,32 +894,48 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                       </div>
                     </div>
 
-                    {/* Service OTP */}
-                    <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-emerald-200 block">Service OTP</span>
-                        <span className="font-mono text-lg font-black tracking-widest text-white">
+                    {/* Service OTP Display (Active until service starts) */}
+                    {activeBooking.status !== "Service Started" ? (
+                      <div className="bg-black/25 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-center sm:text-right">
+                        <span className="text-[10px] uppercase font-bold text-emerald-200 tracking-wider block">
+                          Doorstep Service OTP
+                        </span>
+                        <span className="font-mono text-2xl font-black tracking-widest text-white block my-0.5">
                           {activeBooking.serviceOtp || "4821"}
                         </span>
+                        <span className="text-[10px] text-emerald-100 font-medium block">
+                          Share with worker only after arrival
+                        </span>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-emerald-500/20 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-emerald-400/30 text-center sm:text-right">
+                        <span className="text-[10px] uppercase font-bold text-emerald-300 block">
+                          Doorstep Verification
+                        </span>
+                        <span className="text-xs font-black text-white flex items-center justify-center sm:justify-end gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>OTP Verified • Service Live</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* On-Site Upgrade Banner for Inspection Bookings */}
-                  {(activeBooking.isDiagnostic || activeBooking.bookingType === "Diagnostic Inspection") && (
-                    <div className="p-4 bg-amber-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Customer-Exclusive On-Site Upgrade Banner (ONLY available AFTER service starts for inspection bookings) */}
+                  {activeBooking.status === "Service Started" && (activeBooking.isDiagnostic || activeBooking.bookingType === "Diagnostic Inspection" || activeBooking.bookingType === "Diagnostic / Problem Inspection") && (
+                    <div className="p-4 bg-amber-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
                       <div>
-                        <span className="text-xs font-bold text-amber-900 block">
-                          Current Tier: Diagnostic Inspection (₹{activeBooking.serviceCharge})
-                        </span>
+                        <div className="flex items-center gap-1.5 font-bold text-amber-900 text-xs">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>Problem Inspected On-Site? Ready for Full Repair</span>
+                        </div>
                         <p className="text-[11px] text-amber-700 mt-0.5">
-                          Technician identified the issue? Upgrade to Full Repair with 1-click doorstep confirmation.
+                          {activeBooking.workerName} has diagnosed the issue. You can authorize the upgrade from Diagnostic Inspection (₹{activeBooking.serviceCharge}) to Full Standard Repair.
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleUpgradeBooking(activeBooking.id)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm h-11 shrink-0 flex items-center justify-center gap-1.5"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm h-11 shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Upgrade to Full Repair (₹{activeBooking.standardPrice || 400})</span>
@@ -857,7 +949,7 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                       <img
                         src={activeBooking.workerAvatar || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80"}
                         alt={activeBooking.workerName}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-xs"
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-xs shrink-0"
                       />
                       <div>
                         <h3 className="text-base font-extrabold text-slate-900">{activeBooking.workerName}</h3>
@@ -895,13 +987,15 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                             <span>Chat with Master</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setCancellingBooking(activeBooking)}
-                            className="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl text-xs font-semibold transition h-10"
-                          >
-                            Cancel Job
-                          </button>
+                          {activeBooking.status !== "Service Started" && (
+                            <button
+                              type="button"
+                              onClick={() => setCancellingBooking(activeBooking)}
+                              className="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl text-xs font-semibold transition h-10 cursor-pointer"
+                            >
+                              Cancel Job
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -917,7 +1011,7 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                         <span>₹{activeBooking.platformFee || 20}</span>
                       </div>
                       <div className="flex justify-between font-extrabold text-slate-900 pt-1 border-t border-slate-200">
-                        <span>Total Payable:</span>
+                        <span>Total Settlement:</span>
                         <span>₹{activeBooking.totalAmount || (activeBooking.serviceCharge + 20)}</span>
                       </div>
                     </div>
@@ -1011,11 +1105,14 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         }}
       />
 
-      {/* Worker Bio / Verification inspection modal */}
-      <WorkerVerificationModal
+      {/* Worker Bio inspection modal (Read-only tags, experience, phone, clearances - zero uploads) */}
+      <WorkerBioModal
         isOpen={Boolean(inspectWorker)}
         onClose={() => setInspectWorker(null)}
         worker={inspectWorker}
+        serviceOption={serviceOption}
+        onStartChat={(w) => setChatWorker(w)}
+        onBookWorker={(w) => handleStartBooking(w)}
       />
 
       {/* Payment Modal */}
@@ -1038,9 +1135,15 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
           isOpen={Boolean(reviewBooking)}
           onClose={() => setReviewBooking(null)}
           booking={reviewBooking}
+          onSubmitReview={(bId, rating, text, tags) => {
+            submitReview(bId, rating, text, tags);
+            setReviewBooking(null);
+            setBookingsViewMode("history");
+          }}
           onSubmit={(bId, rating, text, tags) => {
             submitReview(bId, rating, text, tags);
             setReviewBooking(null);
+            setBookingsViewMode("history");
           }}
         />
       )}

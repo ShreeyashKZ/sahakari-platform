@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   MapPin, 
   Clock, 
@@ -8,10 +8,13 @@ import {
   CheckCheck,
   AlertCircle,
   Sparkles,
-  Printer
+  Printer,
+  KeyRound
 } from "lucide-react";
 import { MiddlemanSavingsBubble } from "../common/MiddlemanSavingsBubble";
 import { useApp } from "../../context/AppContext";
+import { WorkerOtpVerificationModal } from "./WorkerOtpVerificationModal";
+import { WorkerPaymentCollectionModal } from "./WorkerPaymentCollectionModal";
 
 export const JobRequestCard = ({ 
   booking, 
@@ -20,7 +23,10 @@ export const JobRequestCard = ({
   onStartService, 
   onCompleteService 
 }) => {
-  const { upgradeBookingToFullRepair, openReceiptModal } = useApp();
+  const { openReceiptModal, completePayment } = useApp();
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const isPending = booking.status === "Requested";
   const isAccepted = booking.status === "Accepted";
@@ -112,20 +118,16 @@ export const JobRequestCard = ({
         </div>
       </div>
 
-      {/* On-Site Upgrade Action for Technician */}
+      {/* Diagnostic Inspection Note for Technician (Only customer can authorize upgrade) */}
       {isDiagnostic && !isDone && !isCancelled && (
-        <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs mb-2">
-          <span className="text-amber-900 font-medium">
-            Diagnosed on-site? Customer can approve upgrade to full repair.
-          </span>
-          <button
-            type="button"
-            onClick={() => upgradeBookingToFullRepair(booking.id)}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shrink-0 h-9"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Upgrade to Full (₹{booking.standardPrice || 400})</span>
-          </button>
+        <div className="p-3 bg-amber-50/90 border border-amber-200/80 rounded-2xl text-xs mb-2">
+          <div className="flex items-center gap-1.5 font-bold text-amber-900">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>50% Diagnostic Inspection Booking</span>
+          </div>
+          <p className="text-[11px] text-amber-800 mt-0.5">
+            Diagnosed on-site? The customer can upgrade to Full Repair directly from their screen.
+          </p>
         </div>
       )}
 
@@ -150,56 +152,79 @@ export const JobRequestCard = ({
 
         {isAccepted && (
           <button
-            onClick={() => onStartService(booking.id)}
+            type="button"
+            onClick={() => setShowOtpModal(true)}
             className="w-full py-2.5 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer h-11"
           >
-            <Play className="w-3.5 h-3.5 fill-white" /> Arrived at Home & Start Service
+            <KeyRound className="w-4 h-4" /> Arrived at Location (Enter Customer OTP)
           </button>
         )}
 
         {isInService && (
           <button
-            onClick={() => {
-              onCompleteService(booking.id);
-              openReceiptModal({
-                jobId: booking.id,
-                customerName: booking.customerName || "Resident",
-                workerName: booking.workerName || "Technician",
-                trade: booking.serviceName || "Service",
-                bookingType: booking.bookingType || "Full Standard Repair",
-                baseLabour: booking.serviceCharge || 350,
-                partsMaterial: 0,
-                coopMaintenanceFee: 20,
-              });
-            }}
+            type="button"
+            onClick={() => setShowPaymentModal(true)}
             className="w-full py-2.5 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer h-11"
           >
-            <CheckCheck className="w-4 h-4" /> Service Finished & Generate Receipt
+            <CheckCheck className="w-4 h-4" /> Service Done & Collect Payment
           </button>
         )}
 
         {isDone && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 py-2 text-center text-xs font-bold text-emerald-800 bg-emerald-100/70 rounded-xl border border-emerald-200">
-              Job Completed & Payout Credited ✓
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 py-2 text-center text-xs font-bold text-emerald-800 bg-emerald-100/70 rounded-xl border border-emerald-200">
+                Job Completed & Payout Credited ✓
+              </div>
+              <button
+                type="button"
+                onClick={() => openReceiptModal({
+                  jobId: booking.id,
+                  customerName: booking.customerName || "Resident",
+                  workerName: booking.workerName || "Technician",
+                  trade: booking.serviceName || "Service",
+                  bookingType: booking.bookingType || "Full Standard Repair",
+                  baseLabour: booking.serviceCharge || 350,
+                  partsMaterial: 0,
+                  coopMaintenanceFee: 20,
+                })}
+                className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition flex items-center gap-1.5 h-10"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Receipt</span>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => openReceiptModal({
-                jobId: booking.id,
-                customerName: booking.customerName || "Resident",
-                workerName: booking.workerName || "Technician",
-                trade: booking.serviceName || "Service",
-                bookingType: booking.bookingType || "Full Standard Repair",
-                baseLabour: booking.serviceCharge || 350,
-                partsMaterial: 0,
-                coopMaintenanceFee: 20,
-              })}
-              className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition flex items-center gap-1.5 h-10"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Receipt</span>
-            </button>
+
+            {/* Customer Rating and Feedback in Worker's Job History */}
+            {booking.rating ? (
+              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-1 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900">Customer Feedback</span>
+                  <div className="flex items-center gap-1 text-amber-500 text-sm font-black">
+                    {"★".repeat(booking.rating)}{"☆".repeat(5 - booking.rating)}
+                    <span className="text-slate-800 text-xs font-bold ml-1">({booking.rating}.0/5)</span>
+                  </div>
+                </div>
+                {booking.review && (
+                  <p className="text-xs text-slate-700 italic font-medium pt-0.5">
+                    "{booking.review}"
+                  </p>
+                )}
+                {booking.reviewTags && booking.reviewTags.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap pt-1">
+                    {booking.reviewTags.map((tag, idx) => (
+                      <span key={idx} className="text-[10px] bg-white border border-amber-200 text-amber-800 px-2 py-0.5 rounded-md font-semibold">
+                        ✓ {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-[11px] text-slate-400 italic text-center py-1">
+                Completed • Waiting for customer rating & review
+              </div>
+            )}
           </div>
         )}
 
@@ -225,6 +250,25 @@ export const JobRequestCard = ({
           </div>
         )}
       </div>
+
+      {/* Doorstep OTP Verification Modal */}
+      <WorkerOtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        booking={booking}
+        onOtpVerified={(id) => onStartService(id)}
+      />
+
+      {/* Worker Payment Collection Gateway Modal */}
+      <WorkerPaymentCollectionModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        booking={booking}
+        onPaymentComplete={(id) => {
+          onCompleteService(id);
+          completePayment(id);
+        }}
+      />
     </div>
   );
 };

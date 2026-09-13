@@ -561,49 +561,57 @@ export const AppProvider = ({ children }) => {
   const completePayment = async (bookingId) => {
     let updatedBooking = null;
 
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === bookingId) {
-          updatedBooking = { ...b, paymentStatus: "Paid", status: "Completed" };
-          return updatedBooking;
-        }
-        return b;
-      })
-    );
+    const nextBookings = bookings.map((b) => {
+      if (b.id === bookingId) {
+        updatedBooking = { ...b, paymentStatus: "Paid", status: "Completed" };
+        return updatedBooking;
+      }
+      return b;
+    });
+
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     if (updatedBooking) {
       // Update worker earnings locally
-      setWorkers((prev) =>
-        prev.map((w) => {
-          if (w.id === updatedBooking.workerId) {
-            return {
-              ...w,
-              completedJobs: w.completedJobs + 1,
-              earnings: {
-                today: w.earnings.today + updatedBooking.workerPayout,
-                thisWeek: w.earnings.thisWeek + updatedBooking.workerPayout,
-                thisMonth: w.earnings.thisMonth + updatedBooking.workerPayout,
-                allTime: w.earnings.allTime + updatedBooking.workerPayout,
-              },
-            };
-          }
-          return w;
-        })
-      );
+      const nextWorkers = workers.map((w) => {
+        if (w.id === updatedBooking.workerId) {
+          const payout = updatedBooking.workerPayout || updatedBooking.totalAmount || 350;
+          return {
+            ...w,
+            completedJobs: (w.completedJobs || 0) + 1,
+            earnings: {
+              today: (w.earnings?.today || 0) + payout,
+              thisWeek: (w.earnings?.thisWeek || 0) + payout,
+              thisMonth: (w.earnings?.thisMonth || 0) + payout,
+              allTime: (w.earnings?.allTime || 0) + payout,
+            },
+          };
+        }
+        return w;
+      });
+
+      setWorkers(nextWorkers);
+      localStorage.setItem("sahakari_workers", JSON.stringify(nextWorkers));
+      broadcastSync("WORKERS_UPDATE", nextWorkers);
 
       // Update Community metrics
       setMetrics((prev) => {
         const currentInt = parseInt(prev.totalPaidToWorkers.replace(/[^\d]/g, ""), 10) || 348200;
-        const newTotal = currentInt + updatedBooking.workerPayout;
+        const payout = updatedBooking.workerPayout || updatedBooking.totalAmount || 350;
+        const newTotal = currentInt + payout;
         const currentWelfare = parseInt(prev.welfarePoolBalance.replace(/[^\d]/g, ""), 10) || 17100;
         const newWelfare = currentWelfare + 15;
 
-        return {
+        const updatedMetrics = {
           ...prev,
           jobsCompleted: prev.jobsCompleted + 1,
           totalPaidToWorkers: `₹${newTotal.toLocaleString("en-IN")}`,
           welfarePoolBalance: `₹${newWelfare.toLocaleString("en-IN")}`,
         };
+        localStorage.setItem("sahakari_metrics", JSON.stringify(updatedMetrics));
+        return updatedMetrics;
       });
 
       if (apiConnected) {
@@ -622,42 +630,47 @@ export const AppProvider = ({ children }) => {
   const submitReview = async (bookingId, rating, reviewText, tags = []) => {
     let bookedWorkerId = null;
 
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === bookingId) {
-          bookedWorkerId = b.workerId;
-          return { ...b, rating, review: reviewText, reviewTags: tags };
-        }
-        return b;
-      })
-    );
+    const nextBookings = bookings.map((b) => {
+      if (b.id === bookingId) {
+        bookedWorkerId = b.workerId;
+        return { ...b, rating, review: reviewText, reviewTags: tags };
+      }
+      return b;
+    });
+
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     if (bookedWorkerId) {
-      setWorkers((prev) =>
-        prev.map((w) => {
-          if (w.id === bookedWorkerId) {
-            const newCount = w.reviewsCount + 1;
-            const newRating = Number(((w.rating * w.reviewsCount + rating) / newCount).toFixed(1));
-            return {
-              ...w,
-              rating: newRating,
-              reviewsCount: newCount,
-              reviews: [
-                {
-                  id: `r-${Date.now()}`,
-                  customerName: "Vikram Malhotra",
-                  rating,
-                  date: "Just now",
-                  comment: reviewText,
-                  tags,
-                },
-                ...w.reviews,
-              ],
-            };
-          }
-          return w;
-        })
-      );
+      const nextWorkers = workers.map((w) => {
+        if (w.id === bookedWorkerId) {
+          const newCount = (w.reviewsCount || 0) + 1;
+          const currentRating = w.rating || 5;
+          const newRating = Number(((currentRating * (w.reviewsCount || 0) + rating) / newCount).toFixed(1));
+          return {
+            ...w,
+            rating: newRating,
+            reviewsCount: newCount,
+            reviews: [
+              {
+                id: `r-${Date.now()}`,
+                customerName: currentUser?.name || "Vikram Malhotra",
+                rating,
+                date: "Just now",
+                comment: reviewText,
+                tags: tags && tags.length > 0 ? tags : ["Cooperative Verified", "Excellent Workmanship"],
+              },
+              ...(w.reviews || []),
+            ],
+          };
+        }
+        return w;
+      });
+
+      setWorkers(nextWorkers);
+      localStorage.setItem("sahakari_workers", JSON.stringify(nextWorkers));
+      broadcastSync("WORKERS_UPDATE", nextWorkers);
 
       if (apiConnected) {
         try {

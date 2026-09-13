@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Star, Check, X, ThumbsUp, Heart } from "lucide-react";
 
-export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview }) => {
+export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit }) => {
   if (!isOpen || !booking) return null;
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState(
-    "Imran arrived promptly, diagnosed the dripping tap quickly, and charged fair cooperative rates. Extremely polite and clean work!"
+    "Technician arrived promptly, solved the issue with genuine cooperative transparency, and charged the exact agreed rate. Outstanding service!"
   );
   const [selectedTags, setSelectedTags] = useState([
     "Punctual Arrival",
@@ -31,7 +31,10 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmitReview(booking.id, rating, comment, selectedTags);
+    const submitFn = onSubmitReview || onSubmit;
+    if (submitFn) {
+      submitFn(booking.id, rating, comment, selectedTags);
+    }
     onClose();
   };
 
