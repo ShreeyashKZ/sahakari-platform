@@ -360,6 +360,100 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem("sahakari_metrics", JSON.stringify(metrics));
   }, [metrics]);
 
+  // Real-time synchronization helper for instant tab-to-tab & window communication
+  const broadcastSync = (type, payload) => {
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel("sahakari_sync_channel");
+        bc.postMessage({ type, payload });
+        bc.close();
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  // Real-time listener: BroadcastChannel + storage events
+  useEffect(() => {
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel("sahakari_sync_channel");
+        bc.onmessage = (event) => {
+          if (!event.data) return;
+          if (event.data.type === "CHAT_UPDATE") {
+            setActiveChatSession(event.data.payload);
+          } else if (event.data.type === "BOOKINGS_UPDATE") {
+            setBookings(event.data.payload);
+          } else if (event.data.type === "WORKERS_UPDATE") {
+            setWorkers(event.data.payload);
+          }
+        };
+      }
+    } catch (e) {}
+
+    const handleStorage = (event) => {
+      if (event.key === "sahakari_active_chat") {
+        try {
+          const parsed = event.newValue ? JSON.parse(event.newValue) : null;
+          setActiveChatSession(parsed);
+        } catch (e) {}
+      } else if (event.key === "sahakari_bookings") {
+        try {
+          const parsed = event.newValue ? JSON.parse(event.newValue) : [];
+          setBookings(parsed);
+        } catch (e) {}
+      } else if (event.key === "sahakari_workers") {
+        try {
+          const parsed = event.newValue ? JSON.parse(event.newValue) : [];
+          setWorkers(parsed);
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  // Multi-device backend polling (when API is reachable)
+  useEffect(() => {
+    if (!apiConnected) return;
+    const interval = setInterval(async () => {
+      try {
+        const bRes = await fetch(`${API_URL}/api/bookings`);
+        if (bRes.ok) {
+          const remoteBookings = await bRes.json();
+          if (Array.isArray(remoteBookings) && remoteBookings.length > 0) {
+            setBookings((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(remoteBookings)) {
+                return remoteBookings;
+              }
+              return prev;
+            });
+          }
+        }
+        const cRes = await fetch(`${API_URL}/api/chat/session`);
+        if (cRes.ok) {
+          const data = await cRes.json();
+          if (data.session && data.session.messages) {
+            setActiveChatSession((prev) => {
+              if (!prev || prev.messages?.length !== data.session.messages.length) {
+                return data.session;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (e) {}
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [apiConnected]);
+
   const currentWorker = workers.find((w) => w.id === currentWorkerId) || workers[0];
 
   // 1. Create a new Booking
@@ -380,8 +474,11 @@ export const AppProvider = ({ children }) => {
       ...bookingData,
     };
 
-    // Optimistic UI update
-    setBookings((prev) => [newBooking, ...prev]);
+    // Optimistic UI update + instant cross-tab broadcast
+    const nextBookings = [newBooking, ...bookings];
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     // Async sync with API if online
     if (apiConnected) {
@@ -401,9 +498,10 @@ export const AppProvider = ({ children }) => {
 
   // 2. Worker updates booking stage
   const updateBookingStatus = async (bookingId, newStatus) => {
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
-    );
+    const nextBookings = bookings.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b));
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     if (apiConnected) {
       try {
@@ -423,23 +521,24 @@ export const AppProvider = ({ children }) => {
     const fullReason = note && note.trim() ? `${reason} (${note.trim()})` : reason;
     const cancelledTimestamp = new Date().toISOString();
 
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? {
-              ...b,
-              status: "Cancelled",
-              cancellationReason: fullReason,
-              cancelledBy: "Customer",
-              cancelledAt: cancelledTimestamp,
-              paymentStatus:
-                b.paymentStatus === "Paid" || b.paymentStatus === "Escrow Secured"
-                  ? "Refund Initiated"
-                  : "Cancelled",
-            }
-          : b
-      )
+    const nextBookings = bookings.map((b) =>
+      b.id === bookingId
+        ? {
+            ...b,
+            status: "Cancelled",
+            cancellationReason: fullReason,
+            cancelledBy: "Customer",
+            cancelledAt: cancelledTimestamp,
+            paymentStatus:
+              b.paymentStatus === "Paid" || b.paymentStatus === "Escrow Secured"
+                ? "Refund Initiated"
+                : "Cancelled",
+          }
+        : b
     );
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
 
     if (apiConnected) {
       try {
@@ -874,8 +973,24 @@ export const AppProvider = ({ children }) => {
     return newSwap;
   };
 
-  // Active Chat & Bargain Session (shared between customer and worker views)
-  const [activeChatSession, setActiveChatSession] = useState(null);
+  // Active Chat & Bargain Session (shared in real-time between customer and worker views)
+  const [activeChatSession, setActiveChatSession] = useState(() => {
+    const saved = localStorage.getItem("sahakari_active_chat");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (activeChatSession) {
+      localStorage.setItem("sahakari_active_chat", JSON.stringify(activeChatSession));
+    } else {
+      localStorage.removeItem("sahakari_active_chat");
+    }
+  }, [activeChatSession]);
 
   const startChatSession = (worker, serviceObj) => {
     const baseRate = worker.hourlyRate || 350;
@@ -893,12 +1008,13 @@ export const AppProvider = ({ children }) => {
       isPoliceVerified: Boolean(worker.isPoliceVerified),
       isNsqfCertified: Boolean(worker.isNsqfCertified),
       isShareholder: Boolean(worker.isShareholder),
+      canBargain: true,
       attractionTags: worker.attractionTags || ["Cooperative Verified"],
       messages: [
         {
           id: "m-1",
           sender: "worker",
-          text: `Namaste! I am available right now for your ${worker.serviceName || "service"} request. I can reach your location in approximately ${worker.etaMinutes || 15} minutes.`,
+          text: `Namaste! I am available right now for your ${worker.serviceName || "service"} inquiry. I can reach your location in approximately ${worker.etaMinutes || 15} minutes. Feel free to ask any question before booking.`,
           timestamp: "Just now",
         },
       ],
@@ -906,7 +1022,19 @@ export const AppProvider = ({ children }) => {
       proposedPrice: null,
       counterPrice: null,
     };
+
     setActiveChatSession(initialSession);
+    localStorage.setItem("sahakari_active_chat", JSON.stringify(initialSession));
+    broadcastSync("CHAT_UPDATE", initialSession);
+
+    if (apiConnected) {
+      fetch(`${API_URL}/api/chat/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(initialSession),
+      }).catch((e) => console.warn("Backend chat session error:", e));
+    }
+
     return initialSession;
   };
 
@@ -918,10 +1046,25 @@ export const AppProvider = ({ children }) => {
       text,
       timestamp: "Just now",
     };
-    setActiveChatSession((prev) => ({
-      ...prev,
-      messages: [...prev.messages, newMsg],
-    }));
+    const updated = {
+      ...activeChatSession,
+      messages: [...(activeChatSession.messages || []), newMsg],
+    };
+    setActiveChatSession(updated);
+    localStorage.setItem("sahakari_active_chat", JSON.stringify(updated));
+    broadcastSync("CHAT_UPDATE", updated);
+
+    if (apiConnected) {
+      fetch(`${API_URL}/api/chat/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender,
+          text,
+          workerId: activeChatSession.workerId,
+        }),
+      }).catch((e) => console.warn("Backend message send error:", e));
+    }
   };
 
   const submitBargainOffer = (proposedPrice) => {
@@ -938,22 +1081,25 @@ export const AppProvider = ({ children }) => {
       proposedPrice: cleanPrice,
     };
 
-    setActiveChatSession((prev) => ({
-      ...prev,
+    const updated = {
+      ...activeChatSession,
       bargainStatus: "bargain_requested",
       proposedPrice: cleanPrice,
-      messages: [...prev.messages, customerMsg],
-    }));
+      messages: [...(activeChatSession.messages || []), customerMsg],
+    };
 
-    // Automated worker reaction if customer is browsing
+    setActiveChatSession(updated);
+    localStorage.setItem("sahakari_active_chat", JSON.stringify(updated));
+    broadcastSync("CHAT_UPDATE", updated);
+
+    // Simulated worker reaction if needed
     setTimeout(() => {
       setActiveChatSession((prev) => {
         if (!prev || prev.bargainStatus !== "bargain_requested") return prev;
 
         if (prev.canBargain) {
-          // If within reasonable range (>= 75% of base)
           if (cleanPrice >= prev.baseRate * 0.75) {
-            return {
+            const accepted = {
               ...prev,
               bargainStatus: "accepted",
               agreedPrice: cleanPrice,
@@ -962,15 +1108,17 @@ export const AppProvider = ({ children }) => {
                 {
                   id: `m-resp-${Date.now()}`,
                   sender: "worker",
-                  text: `I accept your bargain rate of ₹${cleanPrice}! Deal confirmed. Please click 'Confirm Booking' below so I can start navigating.`,
+                  text: `I accept your bargain rate of ₹${cleanPrice}! Deal confirmed. Please confirm your booking so I can start navigating.`,
                   timestamp: "Just now",
                 },
               ],
             };
+            localStorage.setItem("sahakari_active_chat", JSON.stringify(accepted));
+            broadcastSync("CHAT_UPDATE", accepted);
+            return accepted;
           } else {
-            // Counter offer
             const counter = Math.round((prev.baseRate + cleanPrice) / 2 / 10) * 10;
-            return {
+            const countered = {
               ...prev,
               bargainStatus: "countered",
               counterPrice: counter,
@@ -979,15 +1127,17 @@ export const AppProvider = ({ children }) => {
                 {
                   id: `m-resp-${Date.now()}`,
                   sender: "worker",
-                  text: `₹${cleanPrice} is a bit too low considering travel & quality tools. How about a fair cooperative rate of ₹${counter}?`,
+                  text: `₹${cleanPrice} is a bit too low for quality cooperative tooling. How about a fair rate of ₹${counter}?`,
                   timestamp: "Just now",
                 },
               ],
             };
+            localStorage.setItem("sahakari_active_chat", JSON.stringify(countered));
+            broadcastSync("CHAT_UPDATE", countered);
+            return countered;
           }
         } else {
-          // Fixed price worker
-          return {
+          const declined = {
             ...prev,
             bargainStatus: "declined",
             agreedPrice: prev.baseRate,
@@ -996,11 +1146,14 @@ export const AppProvider = ({ children }) => {
               {
                 id: `m-resp-${Date.now()}`,
                 sender: "worker",
-                text: `My pricing is transparently flat & fixed at ₹${prev.baseRate}. This covers 100% genuine workmanship & 30-day warranty without hidden markups.`,
+                text: `My pricing is transparently flat at ₹${prev.baseRate} with 100% genuine workmanship guarantee.`,
                 timestamp: "Just now",
               },
             ],
           };
+          localStorage.setItem("sahakari_active_chat", JSON.stringify(declined));
+          broadcastSync("CHAT_UPDATE", declined);
+          return declined;
         }
       });
     }, 1200);
@@ -1008,43 +1161,44 @@ export const AppProvider = ({ children }) => {
 
   const respondToBargainOffer = (decision, price) => {
     if (!activeChatSession) return;
+    let updated = null;
     if (decision === "accept") {
-      setActiveChatSession((prev) => ({
-        ...prev,
+      updated = {
+        ...activeChatSession,
         bargainStatus: "accepted",
-        agreedPrice: prev.proposedPrice || price,
+        agreedPrice: activeChatSession.proposedPrice || price,
         messages: [
-          ...prev.messages,
+          ...activeChatSession.messages,
           {
             id: `m-w-acc-${Date.now()}`,
             sender: "worker",
-            text: `Deal agreed at ₹${prev.proposedPrice || price}! Ready to proceed with booking.`,
+            text: `Deal agreed at ₹${activeChatSession.proposedPrice || price}! Ready to proceed with booking.`,
             timestamp: "Just now",
           },
         ],
-      }));
+      };
     } else if (decision === "decline") {
-      setActiveChatSession((prev) => ({
-        ...prev,
+      updated = {
+        ...activeChatSession,
         bargainStatus: "declined",
-        agreedPrice: prev.baseRate,
+        agreedPrice: activeChatSession.baseRate,
         messages: [
-          ...prev.messages,
+          ...activeChatSession.messages,
           {
             id: `m-w-dec-${Date.now()}`,
             sender: "worker",
-            text: `Keeping to standard cooperative base price of ₹${prev.baseRate}.`,
+            text: `Keeping to standard cooperative base price of ₹${activeChatSession.baseRate}.`,
             timestamp: "Just now",
           },
         ],
-      }));
+      };
     } else if (decision === "counter") {
-      setActiveChatSession((prev) => ({
-        ...prev,
+      updated = {
+        ...activeChatSession,
         bargainStatus: "countered",
         counterPrice: price,
         messages: [
-          ...prev.messages,
+          ...activeChatSession.messages,
           {
             id: `m-w-cnt-${Date.now()}`,
             sender: "worker",
@@ -1052,7 +1206,47 @@ export const AppProvider = ({ children }) => {
             timestamp: "Just now",
           },
         ],
-      }));
+      };
+    }
+    if (updated) {
+      setActiveChatSession(updated);
+      localStorage.setItem("sahakari_active_chat", JSON.stringify(updated));
+      broadcastSync("CHAT_UPDATE", updated);
+    }
+  };
+
+  // Helper methods to accept or decline incoming offers
+  const acceptBookingOffer = async (bookingId) => {
+    await updateBookingStatus(bookingId, "Accepted");
+  };
+
+  const declineBookingOffer = async (bookingId, reason = "Worker Schedule Conflict") => {
+    const nextBookings = bookings.map((b) =>
+      b.id === bookingId
+        ? {
+            ...b,
+            status: "Cancelled",
+            cancellationReason: `Declined by Worker: ${reason}`,
+            cancelledBy: "Worker",
+            cancelledAt: new Date().toISOString(),
+          }
+        : b
+    );
+    setBookings(nextBookings);
+    localStorage.setItem("sahakari_bookings", JSON.stringify(nextBookings));
+    broadcastSync("BOOKINGS_UPDATE", nextBookings);
+
+    if (apiConnected) {
+      try {
+        await fetch(`${API_URL}/api/bookings/${bookingId}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "Cancelled",
+            cancellationReason: `Declined by Worker: ${reason}`,
+          }),
+        });
+      } catch (e) {}
     }
   };
 
@@ -1344,6 +1538,8 @@ export const AppProvider = ({ children }) => {
         openReceiptModal,
         closeReceiptModal,
         updateWorkerVerification,
+        acceptBookingOffer,
+        declineBookingOffer,
       }}
     >
       {children}

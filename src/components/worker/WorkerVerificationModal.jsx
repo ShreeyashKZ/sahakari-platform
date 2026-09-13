@@ -88,11 +88,11 @@ export const WorkerVerificationModal = ({ isOpen, onClose, worker }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                <h4 className="font-bold text-slate-900">2. State Police Character Certificate (PCC)</h4>
+                <h4 className="font-bold text-slate-900">2. State Police Clearance Certificate (PCC)</h4>
               </div>
               {worker.isPoliceVerified || pccFile ? (
                 <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
-                  🛡️ Police Verified ✓
+                  🛡️ Police Clearance Verified ✓
                 </span>
               ) : (
                 <span className="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
@@ -110,7 +110,7 @@ export const WorkerVerificationModal = ({ isOpen, onClose, worker }) => {
               <label className="flex-1 py-2 px-3 border border-dashed border-emerald-400 hover:border-emerald-600 bg-white rounded-xl text-center cursor-pointer transition">
                 <span className="text-xs font-semibold text-emerald-700 flex items-center justify-center gap-1.5">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{pccFile ? "PCC_Certificate.pdf (Uploaded)" : "Upload Police Character Certificate"}</span>
+                  <span>{pccFile ? "PCC_Certificate.pdf (Uploaded)" : "Upload Police Clearance Certificate"}</span>
                 </span>
                 <input
                   type="file"

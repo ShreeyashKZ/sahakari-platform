@@ -26,7 +26,8 @@ import {
   Calendar,
   Award,
   Printer,
-  ChevronRight
+  ChevronRight,
+  MessageCircle
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { MockPaymentModal } from "../components/customer/MockPaymentModal";
@@ -34,6 +35,7 @@ import { ReviewModal } from "../components/customer/ReviewModal";
 import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
 import { PaymentInterfaceModal } from "../components/customer/PaymentInterfaceModal";
 import { CancelBookingModal } from "../components/customer/CancelBookingModal";
+import { PreBookingChatModal } from "../components/customer/PreBookingChatModal";
 import { MiddlemanSavingsBubble } from "../components/common/MiddlemanSavingsBubble";
 
 export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
@@ -68,6 +70,9 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   const [bookingsViewMode, setBookingsViewMode] = useState("active");
   const [historyFilter, setHistoryFilter] = useState("all"); // 'all' | 'completed' | 'cancelled'
   const [cancellingBooking, setCancellingBooking] = useState(null);
+
+  // Pre-booking real-time chat state
+  const [chatWorker, setChatWorker] = useState(null);
 
   // Checkout modal
   const [pendingPaymentBooking, setPendingPaymentBooking] = useState(null);
@@ -152,10 +157,10 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
     (b) => b.status !== "Completed" && b.status !== "Cancelled"
   );
 
-  const handleStartBooking = (worker) => {
+  const handleStartBooking = (worker, customAgreedRate) => {
     const isDiag = serviceOption === "diagnostic";
     const baseStandardRate = worker.hourlyRate || selectedServiceObj?.basePrice || 400;
-    const effectiveRate = isDiag ? Math.round(baseStandardRate * 0.5) : baseStandardRate;
+    const effectiveRate = customAgreedRate || (isDiag ? Math.round(baseStandardRate * 0.5) : baseStandardRate);
 
     setPendingPaymentBooking({
       workerId: worker.id,
@@ -647,7 +652,7 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                             </div>
                           </div>
 
-                          {/* Action Buttons: Phone Call & Instant Transparent Booking */}
+                          {/* Action Buttons: Phone Call, Real-Time Pre-Booking Chat & Booking */}
                           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
                             <button
                               type="button"
@@ -655,6 +660,16 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                               className="py-2.5 px-3 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer h-11"
                             >
                               Bio
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setChatWorker(worker)}
+                              className="py-2.5 px-3 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer h-11"
+                              title="Chat with technician in real-time before booking"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Chat</span>
                             </button>
 
                             <a
@@ -860,6 +875,28 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
 
                           <button
                             type="button"
+                            onClick={() => {
+                              const targetWorker = workers.find((w) => w.id === activeBooking.workerId) || {
+                                id: activeBooking.workerId,
+                                name: activeBooking.workerName,
+                                avatar: activeBooking.workerAvatar,
+                                phone: activeBooking.workerPhone,
+                                serviceId: activeBooking.serviceId,
+                                serviceName: activeBooking.serviceCategory,
+                                hourlyRate: activeBooking.serviceCharge,
+                                isPoliceVerified: true,
+                                isNsqfCertified: true,
+                              };
+                              setChatWorker(targetWorker);
+                            }}
+                            className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 h-10 cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Chat with Master</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => setCancellingBooking(activeBooking)}
                             className="px-3 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl text-xs font-semibold transition h-10"
                           >
@@ -1016,6 +1053,18 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         onConfirmCancel={(bId, reason, note) => {
           cancelBooking(bId, reason, note);
           setCancellingBooking(null);
+        }}
+      />
+
+      {/* Pre-Booking Real-Time Chat Modal */}
+      <PreBookingChatModal
+        isOpen={Boolean(chatWorker)}
+        onClose={() => setChatWorker(null)}
+        worker={chatWorker}
+        serviceOption={serviceOption}
+        onProceedToBooking={(targetWorker, agreedRate) => {
+          setChatWorker(null);
+          handleStartBooking(targetWorker, agreedRate);
         }}
       />
 

@@ -468,6 +468,41 @@ app.get("/api/metrics", (req, res) => {
   res.json(memMetrics);
 });
 
+// 11. Real-Time Chat & Bargain Stream
+let memActiveChat = null;
+
+app.get("/api/chat/session", (req, res) => {
+  res.json({ session: memActiveChat });
+});
+
+app.post("/api/chat/session", (req, res) => {
+  memActiveChat = req.body;
+  res.json({ success: true, session: memActiveChat });
+});
+
+app.post("/api/chat/message", (req, res) => {
+  const { sender, text, workerId } = req.body;
+  if (!memActiveChat) {
+    memActiveChat = {
+      workerId: workerId || "w-ramesh",
+      messages: [],
+    };
+  }
+  const newMsg = {
+    id: `m-${Date.now()}`,
+    sender: sender || "customer",
+    text: text || "",
+    timestamp: "Just now",
+  };
+  memActiveChat.messages = [...(memActiveChat.messages || []), newMsg];
+  res.json({ success: true, message: newMsg, session: memActiveChat });
+});
+
+app.post("/api/chat/reset", (req, res) => {
+  memActiveChat = null;
+  res.json({ success: true });
+});
+
 // Initialize server and connect to MongoDB
 const startServer = async () => {
   isDbConnected = await connectDB();
