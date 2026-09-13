@@ -455,19 +455,72 @@ app.post("/api/bookings/:id/pay", async (req, res) => {
 app.post("/api/bookings/:id/review", async (req, res) => {
   const { id } = req.params;
   const { rating, review, tags } = req.body;
+  const numRating = Math.min(5, Math.max(1, Number(rating) || 5));
+  const cleanTags = Array.isArray(tags) ? tags : [];
 
   try {
     if (isDbConnected) {
       const updated = await Booking.findOneAndUpdate(
         { id },
-        { rating, review, reviewTags: tags },
+        { rating: numRating, review, reviewTags: cleanTags },
         { new: true }
       );
+      if (updated && updated.workerId) {
+        await Worker.findOneAndUpdate(
+          { id: updated.workerId },
+          {
+            $inc: { reviewsCount: 1 },
+            $push: {
+              reviews: {
+                id: `r-${Date.now()}`,
+                customerName: updated.customerName || "Customer",
+                rating: numRating,
+                comment: review,
+                tags: cleanTags,
+                date: "Just now",
+              },
+            },
+          }
+        );
+      }
       return res.json(updated);
     } else {
-      memBookings = memBookings.map((b) =>
-        b.id === id ? { ...b, rating, review, reviewTags: tags } : b
-      );
+      let targetWorkerId = null;
+      memBookings = memBookings.map((b) => {
+        if (b.id === id) {
+          targetWorkerId = b.workerId;
+          return { ...b, rating: numRating, review, reviewTags: cleanTags };
+        }
+        return b;
+      });
+
+      if (targetWorkerId) {
+        memWorkers = memWorkers.map((w) => {
+          if (w.id === targetWorkerId) {
+            const count = (w.reviewsCount || 0) + 1;
+            const curRating = w.rating || 5;
+            const newRating = Number(((curRating * (w.reviewsCount || 0) + numRating) / count).toFixed(1));
+            return {
+              ...w,
+              rating: newRating,
+              reviewsCount: count,
+              reviews: [
+                {
+                  id: `r-${Date.now()}`,
+                  customerName: "Vikram Malhotra",
+                  rating: numRating,
+                  comment: review,
+                  tags: cleanTags,
+                  date: "Just now",
+                },
+                ...(w.reviews || []),
+              ],
+            };
+          }
+          return w;
+        });
+      }
+
       return res.json(memBookings.find((b) => b.id === id));
     }
   } catch (err) {

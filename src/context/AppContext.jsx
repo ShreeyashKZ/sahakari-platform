@@ -672,12 +672,19 @@ export const AppProvider = ({ children }) => {
 
   // 4. Rate and Review Booking
   const submitReview = async (bookingId, rating, reviewText, tags = []) => {
+    const numRating = Math.min(5, Math.max(1, Number(rating) || 5));
+    const cleanTags = Array.isArray(tags) ? tags : [];
     let bookedWorkerId = null;
 
     const nextBookings = bookings.map((b) => {
       if (b.id === bookingId) {
         bookedWorkerId = b.workerId;
-        return { ...b, rating, review: reviewText, reviewTags: tags };
+        return {
+          ...b,
+          rating: numRating,
+          review: reviewText,
+          reviewTags: cleanTags,
+        };
       }
       return b;
     });
@@ -689,21 +696,21 @@ export const AppProvider = ({ children }) => {
     if (bookedWorkerId) {
       const nextWorkers = workers.map((w) => {
         if (w.id === bookedWorkerId) {
-          const newCount = (w.reviewsCount || 0) + 1;
+          const currentCount = w.reviewsCount || 0;
           const currentRating = w.rating || 5;
-          const newRating = Number(((currentRating * (w.reviewsCount || 0) + rating) / newCount).toFixed(1));
+          const newRating = Number(((currentRating * currentCount + numRating) / (currentCount + 1)).toFixed(1));
           return {
             ...w,
             rating: newRating,
-            reviewsCount: newCount,
+            reviewsCount: currentCount + 1,
             reviews: [
               {
                 id: `r-${Date.now()}`,
                 customerName: currentUser?.name || "Vikram Malhotra",
-                rating,
+                rating: numRating,
                 date: "Just now",
                 comment: reviewText,
-                tags: tags && tags.length > 0 ? tags : ["Cooperative Verified", "Excellent Workmanship"],
+                tags: cleanTags,
               },
               ...(w.reviews || []),
             ],
@@ -721,7 +728,7 @@ export const AppProvider = ({ children }) => {
           await fetch(`${API_URL}/api/bookings/${bookingId}/review`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rating, review: reviewText, tags }),
+            body: JSON.stringify({ rating: numRating, review: reviewText, tags: cleanTags }),
           });
         } catch (e) {
           console.warn("Review backend sync error:", e);
@@ -1092,7 +1099,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [activeChatSession]);
 
-  const startChatSession = (worker, serviceObj) => {
+  const startChatSession = (worker, serviceObj, customerOverride = null) => {
     const baseRate = worker.hourlyRate || 350;
     const initialSession = {
       workerId: worker.id,
@@ -1101,6 +1108,13 @@ export const AppProvider = ({ children }) => {
       workerPhone: worker.phone,
       serviceId: worker.serviceId || serviceObj?.id || "plumber",
       serviceName: worker.serviceName || serviceObj?.name || "Plumbing",
+      customerId: customerOverride?.id || currentUser?.id || "cust-1",
+      customerName: customerOverride?.name || currentUser?.name || "Vikram Malhotra",
+      customerPhone: customerOverride?.phone || currentUser?.phone || "+91 98450 12345",
+      customerAddress: customerOverride?.address || "Flat 402, Shanti Vihar Apts, Indiranagar, Bengaluru",
+      customerAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      hasUnreadWorker: false,
+      lastCustomerMsgAt: null,
       baseRate,
       agreedPrice: baseRate,
       emergencyAvailable: Boolean(worker.emergencyAvailable),
@@ -1146,8 +1160,11 @@ export const AppProvider = ({ children }) => {
       text,
       timestamp: "Just now",
     };
+    const isCustomerMsg = sender === "customer";
     const updated = {
       ...activeChatSession,
+      hasUnreadWorker: isCustomerMsg ? true : (sender === "worker" ? false : activeChatSession.hasUnreadWorker),
+      lastCustomerMsgAt: isCustomerMsg ? Date.now() : activeChatSession.lastCustomerMsgAt,
       messages: [...(activeChatSession.messages || []), newMsg],
     };
     setActiveChatSession(updated);
@@ -1164,6 +1181,16 @@ export const AppProvider = ({ children }) => {
           workerId: activeChatSession.workerId,
         }),
       }).catch((e) => console.warn("Backend message send error:", e));
+    }
+  };
+
+  const markChatReadByWorker = () => {
+    if (!activeChatSession) return;
+    if (activeChatSession.hasUnreadWorker) {
+      const updated = { ...activeChatSession, hasUnreadWorker: false };
+      setActiveChatSession(updated);
+      localStorage.setItem("sahakari_active_chat", JSON.stringify(updated));
+      broadcastSync("CHAT_UPDATE", updated);
     }
   };
 
@@ -1627,6 +1654,7 @@ export const AppProvider = ({ children }) => {
         startChatSession,
         sendChatMessage,
         clearChatSession,
+        markChatReadByWorker,
         submitBargainOffer,
         respondToBargainOffer,
         updateWorkerSettings,

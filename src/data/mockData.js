@@ -985,6 +985,7 @@ export const INITIAL_BOOKINGS = [
     createdAt: "2026-08-28T11:00:00Z",
     rating: 5,
     review: "Speedy arrival, brought genuine Anchor switch spares, very cooperative!",
+    reviewTags: ["Punctual Arrival", "High Quality Work"],
   }
 ];
 

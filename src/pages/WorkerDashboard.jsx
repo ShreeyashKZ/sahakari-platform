@@ -33,6 +33,7 @@ import { JobRequestCard } from "../components/worker/JobRequestCard";
 import { WorkerEarningsSection } from "../components/worker/WorkerEarningsSection";
 import { WorkerVerificationModal } from "../components/worker/WorkerVerificationModal";
 import { WorkerLiveChatModal } from "../components/worker/WorkerLiveChatModal";
+import { WorkerBioModal } from "../components/customer/WorkerBioModal";
 import CooperativeAssemblyTab from "../components/worker/CooperativeAssemblyTab";
 
 export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
@@ -54,6 +55,7 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
 
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showWorkerChatModal, setShowWorkerChatModal] = useState(false);
+  const [showReputationModal, setShowReputationModal] = useState(false);
   const [shareSuccessMsg, setShareSuccessMsg] = useState(null);
 
   // Trust score calculation
@@ -109,6 +111,14 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
   // Check if there is an active live chat with customer for this worker
   const hasActiveChat = activeChatSession && (
     activeChatSession.workerId === currentWorker.id || !activeChatSession.workerId
+  );
+
+  // Check if a customer has chatted / sent messages to this worker
+  const hasCustomerChatted = activeChatSession && (
+    activeChatSession.workerId === currentWorker.id || !activeChatSession.workerId
+  ) && (
+    Boolean(activeChatSession.hasUnreadWorker) ||
+    Boolean(activeChatSession.messages?.some((m) => m.sender === "customer"))
   );
 
   return (
@@ -261,10 +271,15 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
               </p>
 
               <div className="flex items-center gap-4 mt-2 text-xs text-slate-300 flex-wrap">
-                <span className="flex items-center gap-1 font-bold text-amber-300">
+                <button
+                  type="button"
+                  onClick={() => setShowReputationModal(true)}
+                  className="flex items-center gap-1 font-bold text-amber-300 hover:text-amber-200 transition cursor-pointer hover:underline"
+                  title="Click to view full portable reviews and customer compliments"
+                >
                   <Star className="w-3.5 h-3.5 fill-amber-300" />
-                  {currentWorker.rating} ({currentWorker.reviewsCount || 84} reviews)
-                </span>
+                  <span>{currentWorker.rating} ({currentWorker.reviewsCount || 84} reviews)</span>
+                </button>
                 <span>•</span>
                 <span>Base Rate: <strong>₹{currentWorker.hourlyRate || 350}/hr</strong></span>
                 <span>•</span>
@@ -276,16 +291,21 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            {/* Real-time chat button */}
+            {/* Real-time chat button with red dot/ping */}
             <button
               onClick={() => setShowWorkerChatModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-md h-11"
+              className="relative px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-2 cursor-pointer shadow-md h-11"
             >
               <MessageCircle className="w-4 h-4" />
               <span>Live Customer Chat</span>
-              {hasActiveChat && (
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-              )}
+              {hasCustomerChatted ? (
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 border-white"></span>
+                </span>
+              ) : hasActiveChat ? (
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              ) : null}
             </button>
 
             <button
@@ -992,6 +1012,14 @@ export const WorkerDashboard = ({ activeSubTab, setActiveSubTab }) => {
         isOpen={showWorkerChatModal}
         onClose={() => setShowWorkerChatModal(false)}
         worker={currentWorker}
+      />
+
+      {/* Worker Bio & Reputation Modal */}
+      <WorkerBioModal
+        isOpen={showReputationModal}
+        onClose={() => setShowReputationModal(false)}
+        worker={currentWorker}
+        isWorkerSelfView={true}
       />
 
     </div>

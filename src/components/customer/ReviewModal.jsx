@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Star, Check, X, ThumbsUp, Heart } from "lucide-react";
 
 export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit }) => {
@@ -6,11 +6,16 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [selectedTags, setSelectedTags] = useState([
-    "Punctual Arrival",
-    "Fair & Transparent",
-    "Polite Demeanour",
-  ]);
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  // Reset state whenever modal opens for a booking
+  useEffect(() => {
+    if (booking) {
+      setRating(booking.rating ? Number(booking.rating) : 5);
+      setComment(booking.review || "");
+      setSelectedTags(Array.isArray(booking.reviewTags) ? booking.reviewTags : []);
+    }
+  }, [isOpen, booking?.id]);
 
   const availableTags = [
     "Punctual Arrival",
@@ -32,7 +37,7 @@ export const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, onSubmit
     const finalComment = comment.trim() || "Service completed satisfactorily.";
     const submitFn = onSubmitReview || onSubmit;
     if (submitFn) {
-      submitFn(booking.id, rating, finalComment, selectedTags);
+      submitFn(booking.id, Number(rating), finalComment, [...selectedTags]);
     }
     onClose();
   };

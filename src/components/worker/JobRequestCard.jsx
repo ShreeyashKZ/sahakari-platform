@@ -196,31 +196,35 @@ export const JobRequestCard = ({
             </div>
 
             {/* Customer Rating and Feedback in Worker's Job History */}
-            {booking.rating ? (
-              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-1 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900">Customer Feedback</span>
-                  <div className="flex items-center gap-1 text-amber-500 text-sm font-black">
-                    {"★".repeat(booking.rating)}{"☆".repeat(5 - booking.rating)}
-                    <span className="text-slate-800 text-xs font-bold ml-1">({booking.rating}.0/5)</span>
+            {booking.rating ? (() => {
+              const numRating = Number(booking.rating) || 5;
+              const starCount = Math.min(5, Math.max(1, Math.round(numRating)));
+              return (
+                <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-1 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-900">Customer Feedback</span>
+                    <div className="flex items-center gap-1 text-amber-500 text-sm font-black">
+                      {"★".repeat(starCount)}{"☆".repeat(Math.max(0, 5 - starCount))}
+                      <span className="text-slate-800 text-xs font-bold ml-1">({numRating.toFixed(1)}/5)</span>
+                    </div>
                   </div>
+                  {booking.review && (
+                    <p className="text-xs text-slate-700 italic font-medium pt-0.5">
+                      "{booking.review}"
+                    </p>
+                  )}
+                  {booking.reviewTags && booking.reviewTags.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap pt-1">
+                      {booking.reviewTags.map((tag, idx) => (
+                        <span key={idx} className="text-[10px] bg-white border border-amber-200 text-amber-800 px-2 py-0.5 rounded-md font-semibold shadow-2xs">
+                          ✓ {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {booking.review && (
-                  <p className="text-xs text-slate-700 italic font-medium pt-0.5">
-                    "{booking.review}"
-                  </p>
-                )}
-                {booking.reviewTags && booking.reviewTags.length > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap pt-1">
-                    {booking.reviewTags.map((tag, idx) => (
-                      <span key={idx} className="text-[10px] bg-white border border-amber-200 text-amber-800 px-2 py-0.5 rounded-md font-semibold">
-                        ✓ {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="text-[11px] text-slate-400 italic text-center py-1">
                 Completed • Waiting for customer rating & review
               </div>

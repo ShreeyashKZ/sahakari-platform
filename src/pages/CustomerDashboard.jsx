@@ -852,12 +852,34 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
                     </div>
                   </div>
 
-                  {/* Cancel Option */}
-                  <div className="pt-2">
+                  {/* Real-time Chat and Cancel Options */}
+                  <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetWorker = workers.find((w) => w.id === activeBooking.workerId) || {
+                          id: activeBooking.workerId,
+                          name: activeBooking.workerName,
+                          avatar: activeBooking.workerAvatar,
+                          phone: activeBooking.workerPhone,
+                          serviceId: activeBooking.serviceId,
+                          serviceName: activeBooking.serviceCategory,
+                          hourlyRate: activeBooking.serviceCharge,
+                          isPoliceVerified: true,
+                          isNsqfCertified: true,
+                        };
+                        setChatWorker(targetWorker);
+                      }}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer h-11"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Chat with {activeBooking.workerName}</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => setCancellingBooking(activeBooking)}
-                      className="px-5 py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer h-11"
                     >
                       Cancel Offer
                     </button>
@@ -1187,6 +1209,37 @@ export const CustomerDashboard = ({ activeSubTab, setActiveSubTab }) => {
           handleStartBooking(targetWorker, agreedRate);
         }}
       />
+
+      {/* Floating Quick Chat Launcher for Active Booking */}
+      {activeBooking && activeBooking.status !== "Completed" && activeBooking.status !== "Cancelled" && (
+        <div className="fixed bottom-6 right-6 z-40 animate-in slide-in-from-bottom-5 duration-300">
+          <button
+            type="button"
+            onClick={() => {
+              const targetWorker = workers.find((w) => w.id === activeBooking.workerId) || {
+                id: activeBooking.workerId,
+                name: activeBooking.workerName,
+                avatar: activeBooking.workerAvatar,
+                phone: activeBooking.workerPhone,
+                serviceId: activeBooking.serviceId,
+                serviceName: activeBooking.serviceCategory,
+                hourlyRate: activeBooking.serviceCharge,
+                isPoliceVerified: true,
+                isNsqfCertified: true,
+              };
+              setChatWorker(targetWorker);
+            }}
+            className="flex items-center gap-2 px-4 py-3 bg-slate-950 hover:bg-emerald-700 text-white font-black text-xs rounded-full shadow-2xl border-2 border-emerald-400/40 hover:scale-105 transition transform cursor-pointer group"
+          >
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <MessageCircle className="w-4 h-4 text-emerald-400 group-hover:text-white" />
+            <span>Chat with {activeBooking.workerName.split(" ")[0]} ({activeBooking.status})</span>
+          </button>
+        </div>
+      )}
 
     </div>
   );

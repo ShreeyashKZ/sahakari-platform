@@ -271,6 +271,7 @@ export const WorkerBioModal = ({
                   rating: 5,
                   comment: "Extremely punctual and transparent. Solved the pipe leak in 25 minutes without pushing unnecessary spare parts.",
                   date: "2 days ago",
+                  tags: ["Punctual Arrival", "Fair & Transparent"],
                 },
                 {
                   id: "rev-2",
@@ -278,18 +279,28 @@ export const WorkerBioModal = ({
                   rating: 5,
                   comment: "Very polite technician. Charged the exact 50% inspection fee agreed upon upfront. 100% recommended!",
                   date: "Last week",
+                  tags: ["Polite Demeanour", "High Quality Work"],
                 },
-              ]).slice(0, 3).map((r, i) => (
-                <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+              ]).slice(0, 5).map((r, i) => (
+                <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-900">{r.customerName}</span>
-                    <span className="text-amber-600 font-bold flex items-center gap-0.5">
+                    <span className="text-amber-600 font-black flex items-center gap-0.5">
                       ★ {r.rating}
                     </span>
                   </div>
-                  <p className="text-slate-600 mt-1 text-[11px] leading-relaxed">
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
                     "{r.comment}"
                   </p>
+                  {r.tags && r.tags.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                      {r.tags.map((tag, tIdx) => (
+                        <span key={tIdx} className="text-[9px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-medium">
+                          ✓ {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
